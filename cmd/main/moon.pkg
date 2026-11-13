@@ -1,5 +1,6 @@
 import {
   "young9682/nl2sql" @lib,
+  "young9682/nl2sql/sqlcheck",
 }
 
 pkgtype(kind: "executable")

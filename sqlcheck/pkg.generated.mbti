@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "young9682/nl2sql/sqlcheck"
+
+// Values
+pub fn check_read_only(String) -> SqlCheck
+
+// Errors
+
+// Types and methods
+pub(all) struct SqlCheck {
+  ok : Bool
+  statements : Int32
+  reason : String
+}
+
+// Type aliases
+
+// Traits

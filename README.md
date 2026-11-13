@@ -17,7 +17,7 @@ Natural language → SQL → read-only execution → evidence-backed answers, as
 ## Roadmap
 
 - [x] **M0 — Schema model** (this release): `Schema` / `Table` / `Column`, LLM-ready `digest()`, SQLite DDL rendering, JSON output
-- [ ] **M1 — SQL surface**: parse & validate generated SQL with [`moonbit-community/sqlparser`](https://mooncakes.io/docs/moonbit-community/sqlparser); restrict to read-only statements
+- [x] **M1 — SQL surface**: read-only gate via token-level validation on the [`moonbit-community/sqlparser`](https://mooncakes.io/docs/moonbit-community/sqlparser) lexer — every statement must start with `SELECT`/`WITH`; full AST validation deferred (see known limitations)
 - [ ] **M2 — Execution**: SQLite via [`mizchi/sqlite`](https://mooncakes.io/docs/mizchi/sqlite) (native) / `moonbitstack/moonsqlite` (WASM), read-only mode
 - [ ] **M3 — Planning**: natural-language question → SQL plan via [`mizchi/llm`](https://mooncakes.io/docs/mizchi/llm) (OpenAI-compatible, tool calling)
 - [ ] **M4 — Answers & CLI**: result → answer with evidence; interactive `cmd/main` CLI
@@ -32,9 +32,18 @@ moon add young9682/nl2sql   # after the first publish
 let schema = @nl2sql.sample_schema()
 println(schema.digest())          // paste into your LLM prompt
 println(schema.create_table_sql()) // CREATE TABLE ... statements
+
+let check = @sqlcheck.check_read_only("DELETE FROM users")
+// check.ok == false
+// check.reason == "statement 1: not a read-only query (starts with Delete)"
 ```
 
 Run the demo: `moon run cmd/main` · Run tests: `moon test`
+
+## Known limitations (M1)
+
+- **Token-level gate**: `sqlcheck.check_read_only` validates statement *kinds* on the lexer's token stream — every semicolon-separated statement must start with `SELECT` or `WITH`. It does not verify full SQL grammar: a syntactically broken `SELECT` passes the gate and fails later at execution (M2). This keeps the security boundary independent of parser bugs.
+- **Upstream parser bug**: `moonbit-community/sqlparser@0.5.2` panics (index out of bounds in `Parser::parse_table_ref`) on any query containing a `FROM <table>` clause, so AST-level validation is deferred until upstream fixes it.
 
 ## Design principles
 
