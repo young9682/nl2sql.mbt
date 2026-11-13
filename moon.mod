@@ -24,3 +24,7 @@ keywords = [ "nl2sql", "text2sql", "sql", "llm", "sqlite", "database", "agent" ]
 preferred_target = "wasm"
 
 description = "NL2SQL data Q&A engine: natural language to SQL, read-only execution, evidence-backed answers. Pure MoonBit, native + WASM."
+
+import {
+  "moonbit-community/sqlparser@0.5.2",
+}
