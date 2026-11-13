@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "young9682/nl2sql"
+
+// Values
+pub fn sample_schema() -> Schema
+
+// Errors
+
+// Types and methods
+pub(all) struct Column {
+  name : String
+  col_type : String
+  nullable : Bool
+  primary_key : Bool
+}
+pub fn Column::new(String, String, nullable? : Bool, primary_key? : Bool) -> Self
+
+pub(all) struct Schema {
+  tables : Array[Table]
+}
+pub fn Schema::create_table_sql(Self) -> String
+pub fn Schema::digest(Self) -> String
+pub fn Schema::find_table(Self, String) -> Table?
+pub fn Schema::new(Array[Table]) -> Self
+pub fn Schema::to_json(Self) -> String
+
+pub(all) struct Table {
+  name : String
+  columns : Array[Column]
+}
+pub fn Table::create_table_sql(Self) -> String
+pub fn Table::new(String, Array[Column]) -> Self
+
+// Type aliases
+
+// Traits

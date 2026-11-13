@@ -1,0 +1,5 @@
+import {
+  "young9682/nl2sql" @lib,
+}
+
+pkgtype(kind: "executable")
