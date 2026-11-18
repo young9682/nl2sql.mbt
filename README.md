@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
 
-> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The live-model comparison report remains pending.
+> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. The live-model comparison report remains pending.
 
 ## Why
 
@@ -70,6 +70,16 @@ moon run --quiet --target native cmd/nl2sql -- --db sqlite/fixtures/orders.db "W
 ```
 
 Use `--demo CASE_ID` with any ID in the [fixed question set](eval/questions.json), or `--help` for the available options.
+
+## Independent MoonBit integration
+
+The [inventory report](examples/inventory-report/README.md) is a separate MoonBit module that uses `young9682/nl2sql/sqlite` to find low-stock products. Its tests cover typed results, write rejection, and reporting a truncated result as partial. From the repository root, run the following commands.
+
+```bash
+cd examples/inventory-report
+moon test --target native .
+moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1
+```
 
 ## Schema and SQL screening demo
 
