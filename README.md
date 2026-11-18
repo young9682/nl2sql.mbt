@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
 
-> **Current status** — M0–M2, structured query planning, and the comparison runner are implemented. The M3 live-model report and M4 native CLI are pending.
+> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. The live-model comparison report remains pending.
 
 ## Why
 
@@ -40,7 +40,7 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Evaluation deliverables** include a fixed question set with expected rows or an expected no-answer outcome, a runnable comparison script, and a live-model report with per-question outcomes and aggregate results.
 - **Acceptance for evaluation** requires comparing structured planning with direct model-generated SQL on the same questions, database snapshot, schema context, model version, and generation settings. Both paths can abstain and use the same M2 execution policy and limits for queries. Report result accuracy on answerable questions, invalid query or plan rate across the set, and correct abstention on unanswerable questions. Include counts and denominators, rejected cases, and the commands to reproduce the comparison.
 
-### M4 · Evidence-backed answers and native CLI (planned)
+### M4 · Evidence-backed answers and native CLI
 
 - **Deliverables** include a native CLI that accepts a database path and question, a README walkthrough from build to question to evidence, and an integration in a separate MoonBit project that imports the public library API for one of its own workflows. Each successful CLI answer includes the executed SQL, bound parameters, returned rows, and the schema used for planning. Distinguish empty results, truncated output, rejected queries, and execution failures.
 - **Acceptance for the CLI** requires a reviewer to reproduce the full workflow with the sample database and deterministic model responses without an API key. Native CI must build the CLI and run the library and CLI integration tests. The repository must include the live-model walkthrough, the M3 comparison report, and an explanation of the execution policy, platform choices, and third-party dependencies, with the work traceable through commits, issues, and PRs.
@@ -51,7 +51,37 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Deliverables** include a documented target and a SQLite adapter for that target. Evaluate a MoonBit WASM build with host-provided SQLite separately from a MoonBit JS build that loads SQLite WASM.
 - **Acceptance** requires a reproducible build and demo on the selected runtime, with the same single-query, read-only, typed-results, timeout, and truncation checks used for the native library.
 
-## Try the current demo
+## Native CLI demo
+
+From the repository root, run the bundled SQLite demo. It replays a fixed model response and executes the generated read-only query against the sample database, with no endpoint or API key needed.
+
+```bash
+moon run --quiet --target native cmd/nl2sql -- --demo
+moon run --quiet --target native cmd/nl2sql -- --demo unanswerable-profit
+moon run --quiet --target native cmd/nl2sql -- --max-rows 1 --demo spend-by-user
+```
+
+The default question asks for each user's total spend. The returned rows show `林` at 50 and `Sam` at 20. The JSON includes the actual `sql`, bound `params`, typed `result` rows, and the schema and foreign keys in `context`. Statuses distinguish successful rows, empty results, truncation, and a no-answer response. Argument and execution errors return an error status and a nonzero exit code.
+
+For a live query, set `NL2SQL_ENDPOINT` to the full Chat Completions URL and `NL2SQL_MODEL` to the model identifier. Set `NL2SQL_API_KEY` when the endpoint requires a bearer token. Then pass an existing SQLite file and the question.
+
+```bash
+moon run --quiet --target native cmd/nl2sql -- --db sqlite/fixtures/orders.db "What did each user spend?"
+```
+
+Use `--demo CASE_ID` with any ID in the [fixed question set](eval/questions.json), or `--help` for the available options.
+
+## Independent MoonBit integration
+
+The [inventory report](examples/inventory-report/README.md) is a separate MoonBit module that uses `young9682/nl2sql/sqlite` to find low-stock products. Its tests cover typed results, write rejection, and reporting a truncated result as partial. From the repository root, run the following commands.
+
+```bash
+cd examples/inventory-report
+moon test --target native .
+moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1
+```
+
+## Schema and SQL screening demo
 
 From a checkout, run the schema and SQL screening demo with `moon run cmd/main`. Run the core tests with `moon test --target wasm`.
 

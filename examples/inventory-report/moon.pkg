@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "young9682/nl2sql/sqlite",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
