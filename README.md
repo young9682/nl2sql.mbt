@@ -4,9 +4,9 @@
 
 `nl2sql` is a MoonBit project for answering natural-language questions about SQLite data. The hackathon release targets a native library and CLI that run read-only queries and return answers backed by the executed SQL, result rows, and schema.
 
-参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
+参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。参赛版之后的 WASM 演示可在 Node.js 本地复现。
 
-> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. The live-model comparison report remains pending.
+> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. M5 has a credential-free Node.js WasmGC demo. The live-model comparison report remains pending.
 
 ## Why
 
@@ -46,10 +46,11 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Acceptance for the CLI** requires a reviewer to reproduce the full workflow with the sample database and deterministic model responses without an API key. Native CI must build the CLI and run the library and CLI integration tests. The repository must include the live-model walkthrough, the M3 comparison report, and an explanation of the execution policy, platform choices, and third-party dependencies, with the work traceable through commits, issues, and PRs.
 - **Acceptance for the downstream integration** requires a clean checkout of the separate MoonBit project to build against a documented `nl2sql` version or revision and call the public API directly. Its tests or runnable example must show a successful read with typed results, rejection of a disallowed statement, and explicit handling of a query timeout or result truncation. Include a link to the integration and reproduction commands in this README.
 
-### M5 · WASM deployment (after the hackathon)
+### M5 · WASM deployment (Node.js demo)
 
 - **Deliverables** include a documented target and a SQLite adapter for that target. Evaluate a MoonBit WASM build with host-provided SQLite separately from a MoonBit JS build that loads SQLite WASM.
 - **Acceptance** requires a reproducible build and demo on the selected runtime, with the same single-query, read-only, typed-results, timeout, and truncation checks used for the native library.
+- **Selected runtime** is Node.js with a MoonBit WasmGC planner and host-provided SQLite WASM. The MoonBit JavaScript build runs against the same SQLite adapter for comparison. The [WASM demo](#wasm-demo) documents both builds and the checks.
 
 ## Native CLI demo
 
@@ -80,6 +81,33 @@ cd examples/inventory-report
 moon test --target native .
 moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1
 ```
+
+## WASM demo
+
+From a clean checkout with MoonBit and Node.js 24.2 or later, install the locked SQLite WASM dependency and build the MoonBit planner. Run these commands from the repository root.
+
+```bash
+moon update
+npm ci --prefix examples/wasm-demo --ignore-scripts
+moon build --target wasm-gc --release examples/wasm-demo
+node examples/wasm-demo/demo.mjs
+node examples/wasm-demo/demo.mjs large-order-id
+node examples/wasm-demo/demo.mjs --max-rows 1 spend-by-user
+```
+
+The demo uses the fixed model replies from `eval/questions.json` and runs each compiled query against a read-only SQLite snapshot of `sqlite/fixtures/orders.db`. After dependency installation, the demo reads local files and needs no network connection, endpoint, or API key. The default question returns `林` at 50 and `Sam` at 20, plus the executed SQL, parameters, typed rows, and catalog. The large ID is returned as the decimal string `9007199254740993`. A row limit of one produces a `truncated` report.
+
+The Node.js host runs SQLite via [`@sqlite.org/sqlite-wasm`](https://github.com/sqlite/sqlite-wasm) and passes catalog and plan JSON across the [MoonBit WasmGC string interface](https://docs.moonbitlang.com/en/stable/language/ffi.html). SQLite checks the statement tail and authorizes reads, and the adapter uses SQLite's progress handler and elapsed time to interrupt long queries. This deployment covers the bundled local snapshot on Node.js.
+
+To compare MoonBit's JavaScript target with WasmGC, build the same planner package for JavaScript, then run the demo and tests. Both planner builds use the same SQLite WASM host adapter.
+
+```bash
+moon build --target js --release examples/wasm-demo
+node examples/wasm-demo/demo.mjs --target js
+node --test examples/wasm-demo/demo.test.mjs
+```
+
+The tests launch the WasmGC demo with model settings unset, compare both builds on all eight fixture questions, and check the SQLite adapter for typed bindings and results, rejection of extra statements and writes, timeout, truncation, and an unchanged snapshot.
 
 ## Schema and SQL screening demo
 

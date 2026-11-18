@@ -1,0 +1,22 @@
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "young9682/nl2sql" @lib,
+  "young9682/nl2sql/plan",
+}
+
+supported_targets = "+wasm-gc+js"
+
+// Use derived traits through the trait implementation.
+
+warnings = "-79"
+
+options(
+  link: {
+    "wasm-gc": {
+      "exports": [ "compile_demo_reply" ],
+      "use-js-builtin-string": true,
+    },
+    "js": { "exports": [ "compile_demo_reply" ] },
+  },
+)

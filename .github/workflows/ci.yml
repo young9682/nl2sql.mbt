@@ -43,3 +43,13 @@ jobs:
             | python3 -c 'import json, sys; report = json.load(sys.stdin); assert report["status"] == "partial"; assert report["inventory"]["rows"] == [[["Text", "east"], ["Text", "Tea"], ["Integer", "5"]]]'
       - name: moon test (Wasm core)
         run: moon test --target wasm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build and verify the credential-free Wasm demo
+        run: |
+          npm ci --prefix examples/wasm-demo --ignore-scripts
+          moon build --target wasm-gc --release examples/wasm-demo
+          moon build --target js --release examples/wasm-demo
+          env -u NL2SQL_API_KEY -u NL2SQL_ENDPOINT -u NL2SQL_MODEL -u OPENAI_API_KEY \
+            node --test examples/wasm-demo/demo.test.mjs
