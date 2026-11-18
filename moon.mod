@@ -21,9 +21,9 @@ license = "Apache-2.0"
 
 keywords = [ "nl2sql", "text2sql", "sql", "llm", "sqlite", "database", "agent" ]
 
-preferred_target = "wasm"
+preferred_target = "native"
 
-description = "NL2SQL data Q&A engine: natural language to SQL, read-only execution, evidence-backed answers. Pure MoonBit, native + WASM."
+description = "MoonBit data Q&A engine with native read-only SQLite execution."
 
 import {
   "moonbit-community/sqlparser@0.5.2",

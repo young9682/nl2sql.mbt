@@ -18,7 +18,13 @@ jobs:
         run: moon update
       - name: moon fmt --check
         run: moon fmt --check
-      - name: moon check
-        run: moon check
-      - name: moon test
-        run: moon test
+      - name: Install SQLite development files
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+      - name: moon check (native)
+        run: moon check --target native
+      - name: moon test (native)
+        run: moon test --target native
+      - name: moon test (Wasm core)
+        run: moon test --target wasm

@@ -1,0 +1,19 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+supported_targets = "native"
+
+// Derived traits are available through their trait implementations.
+
+warnings = "-79"
+
+options(
+  "native-stub": [ "sqlite.c" ],
+  link: {
+    "native": {
+      "cc-link-flags": "-lsqlite3",
+      "stub-cc-link-flags": "-lsqlite3",
+    },
+  },
+)

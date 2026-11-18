@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
 
-> **Current status** — M0 and M1 are complete. The current demo renders a sample schema and shows SQL screening. Native SQLite execution, planning, and answers are planned for M2–M4.
+> **Current status** — M0–M2 are implemented. The current demo renders a sample schema and shows SQL screening. The native SQLite library runs parameterized queries on existing files. Planning and answers remain in M3–M4.
 
 ## Why
 
@@ -28,9 +28,9 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Deliverables** include `sqlcheck.check_read_only` and a CLI demonstration using the `moonbit-community/sqlparser` lexer.
 - **Acceptance** requires tests for `SELECT`, CTE queries, and statement splitting, including semicolons inside strings. Empty input and statements beginning with write or DDL keywords must be rejected with a reason. This stage provides the token check described in [Known limitations](#known-limitations-m1).
 
-### M2 · Native SQLite library (planned)
+### M2 · Native SQLite library (implemented)
 
-- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. Evaluate `mizchi/sqlite` against the required SQLite APIs and record the driver choice. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
+- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. The adapter uses SQLite's C API to access statement tails, the authorizer, and the progress handler. These controls are outside the published `mizchi/sqlite` API. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
 - **Acceptance** requires a real SQLite file opened read-only and a single prepared query checked by SQLite before execution. Integration tests cover a parameterized `SELECT`, a CTE query, and typed results including `NULL` and 64-bit integers. They also verify rejection of writes (including writes preceded by `WITH`), extra statements, `ATTACH`, and extension loading. Verify that the fixture's data is unchanged after rejection and that timeouts and result truncation are reported explicitly.
 
 ### M3 · Structured query planning and evaluation (planned)
@@ -53,7 +53,7 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 
 ## Try the current demo
 
-From a checkout, run the schema and SQL screening demo with `moon run cmd/main` and its tests with `moon test`.
+From a checkout, run the schema and SQL screening demo with `moon run cmd/main`. Run the core tests with `moon test --target wasm`.
 
 After the first package release, add the library to a MoonBit project with the following command.
 
@@ -71,9 +71,26 @@ let check = @sqlcheck.check_read_only("DELETE FROM users")
 // check.reason == "statement 1: not a read-only query (starts with Delete)"
 ```
 
+## Native SQLite API
+
+Import `young9682/nl2sql/sqlite` in a Native package. Each `query` call opens its own read-only connection to an existing local SQLite file. The API binds values by SQLite parameter index and returns columns and typed cells in result order.
+
+```moonbit
+let result = @sqlite.query(
+  "sqlite/fixtures/orders.db",
+  "SELECT id, amount FROM orders WHERE user_id = ? ORDER BY id",
+  params=[Integer(1L)],
+  max_rows=10,
+)
+```
+
+The default limits are 100 returned rows and five seconds of query work. The SQLite adapter accepts a single read query, applies an authorizer, and blocks attached databases, extension loading, and virtual tables. SQL text is limited to 64 KiB, and SQLite's value/row size limit is 1 MiB. The time limit interrupts SQLite work and is checked between rows. `truncated` is true when an additional row exists beyond the limit.
+
+Run `moon test --target native` from the repository root to exercise the real fixture. Linux requires SQLite 3.31 or later with development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
+
 ## Known limitations (M1)
 
-- `sqlcheck.check_read_only` checks the first token of each statement. A malformed `SELECT` can pass, and SQLite allows `WITH` before write operations. M2 enforces the query policy in SQLite. [SQLite WITH clause](https://www.sqlite.org/lang_with.html#overview)
+- `sqlcheck.check_read_only` checks the first token of each statement. A malformed `SELECT` can pass, and SQLite allows `WITH` before write operations. The native query API enforces its policy in SQLite. [SQLite WITH clause](https://www.sqlite.org/lang_with.html#overview)
 - `moonbit-community/sqlparser@0.5.2` has a known index-out-of-bounds panic in `Parser::parse_table_ref` on queries with `FROM <table>`. M1 uses the lexer while AST-level validation is deferred. [sqlparser package](https://mooncakes.io/docs/moonbit-community/sqlparser)
 
 ## Design principles
@@ -88,8 +105,9 @@ let check = @sqlcheck.check_read_only("DELETE FROM users")
 moon update        # refresh registry index (fresh checkouts)
 moon fmt           # format
 moon check         # type check
-moon test          # run tests
-moon info && moon fmt  # refresh .mbti interfaces
+moon test          # run the native SQLite integration and core tests
+moon test --target wasm  # run the portable core tests
+moon info && moon fmt    # refresh .mbti interfaces
 ```
 
 ## License
