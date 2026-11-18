@@ -3,6 +3,7 @@ package "young9682/nl2sql/plan"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "young9682/nl2sql",
 }
 
@@ -25,13 +26,13 @@ pub suberror PlanError {
 }
 
 // Types and methods
-#derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug, @json.FromJson)
 pub(all) struct ColumnRef {
   table : String
   column : String
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) enum Comparison {
   Equal
   NotEqual
@@ -47,26 +48,26 @@ pub(all) struct CompiledQuery {
   params : Array[Literal]
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) struct Join {
   table : String
   via : String
 }
 
-#derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug, @json.FromJson)
 pub(all) enum Literal {
   Integer(Int64)
   Real(Double)
   Text(String)
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) struct Order {
   position : Int32
   descending : Bool
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) struct Plan {
   from_table : String
   select : Array[Projection]
@@ -77,14 +78,14 @@ pub(all) struct Plan {
   limit : Int32?
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) enum Predicate {
   Compare(ColumnRef, Comparison, Literal)
   IsNull(ColumnRef)
   IsNotNull(ColumnRef)
 }
 
-#derive(@debug.Debug)
+#derive(@debug.Debug, @json.FromJson)
 pub(all) enum Projection {
   Column(ColumnRef)
   CountAll

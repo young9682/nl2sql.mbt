@@ -1,0 +1,18 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+  "moonbitlang/core/json",
+  "young9682/nl2sql" @lib,
+  "young9682/nl2sql/plan",
+  "young9682/nl2sql/sqlite",
+}
+
+import {
+  "moonbitlang/async/socket",
+} for "test"
+
+supported_targets = "native"
+
+// Derived traits are available through their trait implementations.
+
+warnings = "-79"

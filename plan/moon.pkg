@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/json",
   "young9682/nl2sql" @lib,
 }
 

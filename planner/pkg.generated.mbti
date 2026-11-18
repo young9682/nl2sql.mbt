@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "young9682/nl2sql/planner"
+
+import {
+  "moonbitlang/core/debug",
+  "young9682/nl2sql",
+  "young9682/nl2sql/sqlite",
+}
+
+// Values
+pub async fn ask(String, String, async (String, String) -> String, max_rows? : Int32, timeout_ms? : Int32) -> Answer
+
+pub fn execute_reply(String, @nl2sql.Catalog, String, max_rows? : Int32, timeout_ms? : Int32) -> Answer raise
+
+pub fn model_input(@nl2sql.Catalog, String) -> String
+
+pub fn openai_model(String, String, api_key? : String, request_timeout_ms? : Int32) -> async (String, String) -> String
+
+pub let plan_prompt : String
+
+// Errors
+#derive(@debug.Debug)
+pub suberror PlannerError {
+  InvalidReply(String)
+  ProviderStatus(Int32)
+  ProviderReply(String)
+}
+
+// Types and methods
+pub(all) enum Answer {
+  Queried(Evidence)
+  NoAnswer(String)
+}
+
+pub(all) struct Evidence {
+  sql : String
+  params : Array[@sqlite.Value]
+  result : @sqlite.QueryResult
+  catalog : @nl2sql.Catalog
+}
+
+// Type aliases
+
+// Traits

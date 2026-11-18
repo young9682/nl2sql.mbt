@@ -27,4 +27,5 @@ description = "MoonBit data Q&A engine with native read-only SQLite execution."
 
 import {
   "moonbit-community/sqlparser@0.5.2",
+  "moonbitlang/async@0.22.5",
 }

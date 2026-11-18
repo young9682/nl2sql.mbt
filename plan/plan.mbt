@@ -1,19 +1,19 @@
 ///|
-#derive(Eq, Debug)
+#derive(Eq, Debug, FromJson)
 pub(all) struct ColumnRef {
   table : String
   column : String
 }
 
 ///|
-#derive(Debug)
+#derive(Debug, FromJson)
 pub(all) struct Join {
   table : String
   via : String
 }
 
 ///|
-#derive(Debug)
+#derive(Debug, FromJson(style="flat"))
 pub(all) enum Projection {
   Column(ColumnRef)
   CountAll
@@ -25,7 +25,7 @@ pub(all) enum Projection {
 }
 
 ///|
-#derive(Debug)
+#derive(Debug, FromJson(style="flat"))
 pub(all) enum Comparison {
   Equal
   NotEqual
@@ -36,7 +36,7 @@ pub(all) enum Comparison {
 }
 
 ///|
-#derive(Eq, Debug)
+#derive(Eq, Debug, FromJson(style="flat"))
 pub(all) enum Literal {
   Integer(Int64)
   Real(Double)
@@ -44,7 +44,7 @@ pub(all) enum Literal {
 }
 
 ///|
-#derive(Debug)
+#derive(Debug, FromJson(style="flat"))
 pub(all) enum Predicate {
   Compare(ColumnRef, Comparison, Literal)
   IsNull(ColumnRef)
@@ -52,7 +52,7 @@ pub(all) enum Predicate {
 }
 
 ///|
-#derive(Debug)
+#derive(Debug, FromJson)
 pub(all) struct Order {
   /// One-based index of a projected expression.
   position : Int32
@@ -62,7 +62,7 @@ pub(all) struct Order {
 ///|
 /// Inner joins use a unique declared foreign key to an already joined table.
 /// Filters are combined with AND. Table and column names come from the catalog.
-#derive(Debug)
+#derive(Debug, FromJson)
 pub(all) struct Plan {
   from_table : String
   select : Array[Projection]

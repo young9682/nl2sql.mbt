@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
 
-> **Current status** — M0–M2 are implemented. The current demo renders a sample schema and shows SQL screening. The native SQLite library runs parameterized queries on existing files. Planning and answers remain in M3–M4.
+> **Current status** — M0–M2 and structured query planning are implemented. The current demo renders a sample schema and shows SQL screening. The live-model evaluation and native CLI remain in M3 and M4.
 
 ## Why
 
@@ -35,7 +35,7 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 
 ### M3 · Structured query planning and evaluation (planned)
 
-- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. Provide an OpenAI-compatible adapter and allow tests to supply deterministic model responses. [Candidate LLM client](https://mooncakes.io/docs/mizchi/llm)
+- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. The OpenAI-compatible Chat Completions adapter uses `moonbitlang/async/http`. Tests can supply deterministic model responses. [MoonBit HTTP client](https://mooncakes.io/docs/moonbitlang/async/http)
 - **Acceptance for planning** requires a parameterized filter and a join with aggregation to return the expected rows. Verify that the same accepted plan and schema produce identical SQL and bindings. Malformed plans, unknown tables or columns, and invalid joins must fail with a structured reason before any data query runs. An explicit no-answer response must also skip data query execution.
 - **Evaluation deliverables** include a fixed question set with expected rows or an expected no-answer outcome, a runnable comparison script, and a live-model report with per-question outcomes and aggregate results.
 - **Acceptance for evaluation** requires comparing structured planning with direct model-generated SQL on the same questions, database snapshot, schema context, model version, and generation settings. Both paths can abstain and use the same M2 execution policy and limits for queries. Report result accuracy on answerable questions, invalid query or plan rate across the set, and correct abstention on unanswerable questions. Include counts and denominators, rejected cases, and the commands to reproduce the comparison.
