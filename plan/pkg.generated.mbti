@@ -10,6 +10,8 @@ import {
 // Values
 pub fn compile(@nl2sql.Catalog, Plan) -> CompiledQuery raise PlanError
 
+pub fn compile_reply(@nl2sql.Catalog, String) -> CompiledReply raise
+
 // Errors
 #derive(@debug.Debug)
 pub suberror PlanError {
@@ -23,6 +25,11 @@ pub suberror PlanError {
   InvalidLimit(Int32)
   InvalidIdentifier(String)
   InvalidLiteral
+}
+
+#derive(@debug.Debug)
+pub suberror ReplyError {
+  InvalidReply(String)
 }
 
 // Types and methods
@@ -46,6 +53,11 @@ pub(all) enum Comparison {
 pub(all) struct CompiledQuery {
   sql : String
   params : Array[Literal]
+}
+
+pub(all) enum CompiledReply {
+  Query(CompiledQuery)
+  NoAnswer(String)
 }
 
 #derive(@debug.Debug, @json.FromJson)
