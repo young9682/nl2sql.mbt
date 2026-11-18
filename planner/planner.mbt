@@ -82,42 +82,28 @@ pub fn execute_reply(
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
 ) -> Answer raise {
-  let json = @json.parse(
-    reply,
-    max_nesting_depth=32,
-    reject_duplicate_keys=true,
-  ) catch {
-    _ => raise InvalidReply("expected a single JSON object with unique keys")
+  let compiled = @plan.compile_reply(catalog, reply) catch {
+    @plan.ReplyError::InvalidReply(reason) => raise InvalidReply(reason)
+    error => raise error
   }
-  match json {
-    Object(fields) if fields.length() == 1 =>
-      match (fields.get("plan"), fields.get("no_answer")) {
-        (Some(value), None) => {
-          let plan : @plan.Plan = @json.from_json(value) catch {
-            _ =>
-              raise InvalidReply("plan does not match the requested structure")
-          }
-          let compiled = @plan.compile(catalog, plan)
-          let params = compiled.params.map(literal => {
-            match literal {
-              Integer(value) => @sqlite.Value::Integer(value)
-              Real(value) => @sqlite.Value::Real(value)
-              Text(value) => @sqlite.Value::Text(value)
-            }
-          })
-          let result = @sqlite.query(
-            path,
-            compiled.sql,
-            params~,
-            max_rows~,
-            timeout_ms~,
-          )
-          Queried({ sql: compiled.sql, params, result, catalog, })
+  match compiled {
+    NoAnswer(reason) => NoAnswer(reason)
+    Query(compiled) => {
+      let params = compiled.params.map(literal => {
+        match literal {
+          Integer(value) => @sqlite.Value::Integer(value)
+          Real(value) => @sqlite.Value::Real(value)
+          Text(value) => @sqlite.Value::Text(value)
         }
-        (None, Some(String(reason))) if !reason.trim().is_empty() =>
-          NoAnswer(reason)
-        _ => raise InvalidReply("expected a plan or a no-answer reason")
-      }
-    _ => raise InvalidReply("expected a plan or a no-answer reason")
+      })
+      let result = @sqlite.query(
+        path,
+        compiled.sql,
+        params~,
+        max_rows~,
+        timeout_ms~,
+      )
+      Queried({ sql: compiled.sql, params, result, catalog, })
+    }
   }
 }
