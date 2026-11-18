@@ -29,3 +29,7 @@ import {
   "moonbit-community/sqlparser@0.5.2",
   "moonbitlang/async@0.22.5",
 }
+
+options(
+  "--moonbit-unstable-prebuild": "build.mbtx",
+)

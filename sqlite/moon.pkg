@@ -11,10 +11,4 @@ warnings = "-79"
 
 options(
   "native-stub": [ "sqlite.c" ],
-  link: {
-    "native": {
-      "cc-link-flags": "-lsqlite3",
-      "stub-cc-link-flags": "-lsqlite3",
-    },
-  },
 )
