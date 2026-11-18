@@ -15,6 +15,7 @@ enum Outcome {
 struct Observation {
   status : Outcome
   detail : String
+  model_reply : String?
   sql : String?
   params : Array[Json]
   rows : Array[Json]?
@@ -27,9 +28,14 @@ fn Observation::to_json(self : Observation) -> Json {
     Some(sql) => Json::string(sql)
     None => Json::null()
   }
+  let model_reply = match self.model_reply {
+    Some(reply) => Json::string(reply)
+    None => Json::null()
+  }
   {
     "status": @json.to_json(self.status),
     "detail": Json::string(self.detail),
+    "model_reply": model_reply,
     "sql": sql,
     "params": Json::array(self.params),
     "rows": optional_rows(self.rows),
@@ -39,7 +45,15 @@ fn Observation::to_json(self : Observation) -> Json {
 
 ///|
 fn failure(status : Outcome, detail : String) -> Observation {
-  { status, detail, sql: None, params: [], rows: None, truncated: false, }
+  {
+    status,
+    detail,
+    model_reply: None,
+    sql: None,
+    params: [],
+    rows: None,
+    truncated: false,
+  }
 }
 
 ///|
@@ -80,6 +94,7 @@ fn grade_rows(
   }
   {
     status,
+    model_reply: None,
     detail: if result.truncated {
       "query result was truncated"
     } else {

@@ -150,7 +150,7 @@ async fn compare_case(
       }
     }
   }
-  observe(question, () => {
+  let observation = observe(question, () => {
     if structured {
       match
         @planner.execute_reply(
@@ -191,6 +191,11 @@ async fn compare_case(
       }
     }
   })
+  if generate is Some(_) {
+    { ..observation, model_reply: Some(reply), }
+  } else {
+    observation
+  }
 }
 
 ///|
