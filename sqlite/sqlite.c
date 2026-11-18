@@ -151,6 +151,34 @@ MOONBIT_FFI_EXPORT int32_t nl2sql_sqlite_prepare(int64_t handle, moonbit_bytes_t
   return SQLITE_OK;
 }
 
+MOONBIT_FFI_EXPORT int32_t nl2sql_sqlite_prepare_catalog(int64_t handle) {
+  Query *query = from_handle(handle);
+  if (expired(query)) return SQLITE_INTERRUPT;
+
+  // This private entry point compiles only the fixed metadata statement.
+  // SQLite's pragma table functions require virtual-table access on this
+  // connection. Caller-supplied statements always use nl2sql_sqlite_prepare.
+  static const char sql[] =
+    "WITH tables AS ("
+    "  SELECT name FROM pragma_table_list"
+    "  WHERE schema = 'main' AND type = 'table' AND name NOT GLOB 'sqlite_*'"
+    ") "
+    "SELECT 0 AS kind, t.name AS table_name, c.name, c.type, c.pk, c.\"notnull\","
+    "       0 AS key_id, c.cid AS seq, NULL "
+    "FROM tables t JOIN pragma_table_xinfo(t.name, 'main') AS c WHERE c.hidden != 1 "
+    "UNION ALL "
+    "SELECT 1, t.name, f.\"from\", f.\"table\", 0, 0, f.id, f.seq, "
+    "       coalesce(f.\"to\", (SELECT p.name FROM pragma_table_xinfo(f.\"table\", 'main') p"
+    "                        WHERE p.pk = f.seq + 1)) "
+    "FROM tables t JOIN pragma_foreign_key_list(t.name, 'main') AS f "
+    "ORDER BY kind, table_name, key_id, seq";
+  int rc = sqlite3_set_authorizer(query->db, NULL, NULL);
+  if (rc != SQLITE_OK) return rc;
+  rc = sqlite3_prepare_v3(query->db, sql, -1, 0, &query->stmt, NULL);
+  if (rc == SQLITE_OK && !sqlite3_stmt_readonly(query->stmt)) return REJECTED_STATEMENT;
+  return rc;
+}
+
 MOONBIT_FFI_EXPORT int32_t nl2sql_sqlite_parameter_count(int64_t handle) {
   return sqlite3_bind_parameter_count(from_handle(handle)->stmt);
 }

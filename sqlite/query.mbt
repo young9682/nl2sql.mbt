@@ -28,6 +28,7 @@ pub suberror QueryError {
   Rejected(String)
   ParameterCount(Int32, Int32)
   InvalidText
+  InvalidSchema(String)
   TimedOut
   SqliteError(Int32, String)
 }
@@ -42,21 +43,38 @@ pub fn query(
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
 ) -> QueryResult raise QueryError {
+  execute(path, Some(sql), params, max_rows, timeout_ms)
+}
+
+///|
+fn execute(
+  path : String,
+  sql : String?,
+  params : Array[Value],
+  max_rows : Int32,
+  timeout_ms : Int32,
+) -> QueryResult raise QueryError {
   if path.is_empty() ||
     path == ":memory:" ||
     path.has_prefix("file:") ||
     path.contains("\u{0}") {
     raise InvalidInput("expected a local database file path")
   }
-  if sql.contains("\u{0}") {
-    raise InvalidInput("SQL contains a NUL character")
-  }
   if max_rows <= 0 || timeout_ms <= 0 {
     raise InvalidInput("max_rows and timeout_ms must be positive")
   }
-  let sql_bytes = @utf8.encode(sql + "\u{0}")
-  if sql_bytes.length() > 64 * 1024 + 1 {
-    raise InvalidInput("SQL text is longer than 64 KiB")
+  let sql_bytes = match sql {
+    Some(sql) => {
+      if sql.contains("\u{0}") {
+        raise InvalidInput("SQL contains a NUL character")
+      }
+      let bytes = @utf8.encode(sql + "\u{0}")
+      if bytes.length() > 64 * 1024 + 1 {
+        raise InvalidInput("SQL text is longer than 64 KiB")
+      }
+      Some(bytes)
+    }
+    None => None
   }
   let handle = open_read_only(@utf8.encode(path + "\u{0}"), timeout_ms)
   if handle == 0L {
@@ -67,7 +85,10 @@ pub fn query(
   if status != 0 {
     raise OpenFailed(status, sqlite_message(handle, status))
   }
-  let status = prepare(handle, sql_bytes)
+  let status = match sql_bytes {
+    Some(bytes) => prepare(handle, bytes)
+    None => prepare_catalog(handle)
+  }
   match status {
     0 => ()
     -1 => raise EmptyStatement

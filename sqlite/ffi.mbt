@@ -16,6 +16,9 @@ extern "C" fn error_message(handle : Int64, status : Int32) -> Bytes = "nl2sql_s
 extern "C" fn prepare(handle : Int64, sql : Bytes) -> Int32 = "nl2sql_sqlite_prepare"
 
 ///|
+extern "C" fn prepare_catalog(handle : Int64) -> Int32 = "nl2sql_sqlite_prepare_catalog"
+
+///|
 extern "C" fn parameter_count(handle : Int64) -> Int32 = "nl2sql_sqlite_parameter_count"
 
 ///|

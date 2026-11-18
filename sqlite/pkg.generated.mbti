@@ -3,10 +3,13 @@ package "young9682/nl2sql/sqlite"
 
 import {
   "moonbitlang/core/debug",
+  "young9682/nl2sql",
 }
 
 // Values
 pub fn query(String, String, params? : Array[Value], max_rows? : Int32, timeout_ms? : Int32) -> QueryResult raise QueryError
+
+pub fn read_catalog(String, timeout_ms? : Int32) -> @nl2sql.Catalog raise QueryError
 
 // Errors
 #derive(@debug.Debug)
@@ -18,6 +21,7 @@ pub suberror QueryError {
   Rejected(String)
   ParameterCount(Int32, Int32)
   InvalidText
+  InvalidSchema(String)
   TimedOut
   SqliteError(Int32, String)
 }

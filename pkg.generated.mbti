@@ -7,6 +7,11 @@ pub fn sample_schema() -> Schema
 // Errors
 
 // Types and methods
+pub(all) struct Catalog {
+  schema : Schema
+  foreign_keys : Array[ForeignKey]
+}
+
 pub(all) struct Column {
   name : String
   col_type : String
@@ -14,6 +19,13 @@ pub(all) struct Column {
   primary_key : Bool
 }
 pub fn Column::new(String, String, nullable? : Bool, primary_key? : Bool) -> Self
+
+pub(all) struct ForeignKey {
+  source_table : String
+  source_columns : Array[String]
+  target_table : String
+  target_columns : Array[String?]
+}
 
 pub(all) struct Schema {
   tables : Array[Table]

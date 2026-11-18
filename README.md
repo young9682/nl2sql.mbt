@@ -86,7 +86,9 @@ let result = @sqlite.query(
 
 The default limits are 100 returned rows and five seconds of query work. The SQLite adapter accepts a single read query, applies an authorizer, and blocks attached databases, extension loading, and virtual tables. SQL text is limited to 64 KiB, and SQLite's value/row size limit is 1 MiB. The time limit interrupts SQLite work and is checked between rows. `truncated` is true when an additional row exists beyond the limit.
 
-Run `moon test --target native` from the repository root to exercise the real fixture. Linux requires SQLite 3.31 or later with development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
+Use `@sqlite.read_catalog(path)` to inspect the main database's regular tables, columns, and declared foreign keys. The catalog is read in one SQLite statement and preserves composite key order. Catalog inspection requires SQLite 3.37 or later. Linux builds use SQLite development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`.
+
+Run `moon test --target native` from the repository root to exercise the fixture. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
 
 ## Known limitations (M1)
 

@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/encoding/utf8",
+  "young9682/nl2sql" @lib,
 }
 
 supported_targets = "native"
