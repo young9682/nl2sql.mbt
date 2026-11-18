@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。参赛版之后的 WASM 演示可在 Node.js 本地复现。
 
-> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. M5 has a credential-free Node.js WasmGC demo. The live-model comparison report remains pending.
+> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. M5 has a credential-free Node.js WasmGC demo. The [M3 live-model report](eval/live-model-report.md) records the paired evaluation.
 
 ## Why
 
@@ -33,7 +33,7 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. The adapter uses SQLite's C API to access statement tails, the authorizer, and the progress handler. These controls are outside the published `mizchi/sqlite` API. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
 - **Acceptance** requires a real SQLite file opened read-only and a single prepared query checked by SQLite before execution. Integration tests cover a parameterized `SELECT`, a CTE query, and typed results including `NULL` and 64-bit integers. They also verify rejection of writes (including writes preceded by `WITH`), extra statements, `ATTACH`, and extension loading. Verify that the fixture's data is unchanged after rejection and that timeouts and result truncation are reported explicitly.
 
-### M3 · Structured query planning and evaluation (live-model report pending)
+### M3 · Structured query planning and evaluation (complete)
 
 - **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. The OpenAI-compatible Chat Completions adapter uses `moonbitlang/async/http`. Tests can supply deterministic model responses. [MoonBit HTTP client](https://mooncakes.io/docs/moonbitlang/async/http)
 - **Acceptance for planning** requires a parameterized filter and a join with aggregation to return the expected rows. Verify that the same accepted plan and schema produce identical SQL and bindings. Malformed plans, unknown tables or columns, and invalid joins must fail with a structured reason before any data query runs. An explicit no-answer response must also skip data query execution.
@@ -161,7 +161,7 @@ moon run --quiet cmd/eval -- --live
 
 Fixture mode replays checked-in model responses across both paths. Live mode uses `NL2SQL_ENDPOINT` for the full Chat Completions URL, `NL2SQL_MODEL` for the model identifier, and `NL2SQL_API_KEY` when the endpoint requires a bearer token.
 
-Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Row comparison preserves duplicates and checks row order when requested. Keep the repository revision and model version with any live report.
+Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Live mode also records each original model reply. Row comparison preserves duplicates and checks row order when requested. The paired runs, raw output, and reproduction commands are in the [M3 live-model report](eval/live-model-report.md).
 
 ## Known limitations (M1)
 
