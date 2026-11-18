@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "young9682/nl2sql/plan"
+
+import {
+  "moonbitlang/core/debug",
+  "young9682/nl2sql",
+}
+
+// Values
+pub fn compile(@nl2sql.Catalog, Plan) -> CompiledQuery raise PlanError
+
+// Errors
+#derive(@debug.Debug)
+pub suberror PlanError {
+  EmptyProjection
+  UnknownTable(String)
+  UnknownColumn(ColumnRef)
+  InvalidJoin(String, String)
+  AmbiguousJoin(String, String)
+  MissingGroupBy(ColumnRef)
+  InvalidOrder(Int32)
+  InvalidLimit(Int32)
+  InvalidIdentifier(String)
+  InvalidLiteral
+}
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) struct ColumnRef {
+  table : String
+  column : String
+}
+
+#derive(@debug.Debug)
+pub(all) enum Comparison {
+  Equal
+  NotEqual
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+}
+
+#derive(@debug.Debug)
+pub(all) struct CompiledQuery {
+  sql : String
+  params : Array[Literal]
+}
+
+#derive(@debug.Debug)
+pub(all) struct Join {
+  table : String
+  via : String
+}
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Literal {
+  Integer(Int64)
+  Real(Double)
+  Text(String)
+}
+
+#derive(@debug.Debug)
+pub(all) struct Order {
+  position : Int32
+  descending : Bool
+}
+
+#derive(@debug.Debug)
+pub(all) struct Plan {
+  from_table : String
+  select : Array[Projection]
+  joins : Array[Join]
+  filters : Array[Predicate]
+  group_by : Array[ColumnRef]
+  order_by : Array[Order]
+  limit : Int32?
+}
+
+#derive(@debug.Debug)
+pub(all) enum Predicate {
+  Compare(ColumnRef, Comparison, Literal)
+  IsNull(ColumnRef)
+  IsNotNull(ColumnRef)
+}
+
+#derive(@debug.Debug)
+pub(all) enum Projection {
+  Column(ColumnRef)
+  CountAll
+  Count(ColumnRef)
+  Sum(ColumnRef)
+  Avg(ColumnRef)
+  Min(ColumnRef)
+  Max(ColumnRef)
+}
+
+// Type aliases
+
+// Traits
