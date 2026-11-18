@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/json",
+  "young9682/nl2sql" @lib,
+}
+
+// Derived traits are available through their trait implementations.
+
+warnings = "-79"

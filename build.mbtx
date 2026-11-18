@@ -1,0 +1,17 @@
+----
+import {
+  "moonbitlang/core/env",
+}
+----
+
+///|
+fn main {
+  // Moon applies these libraries to executables that import the SQLite package.
+  // On Windows the C adapter links the SDK library through an MSVC pragma.
+  let sqlite_link =
+    #|{"link_configs":[{"package":"young9682/nl2sql/sqlite","link_libs":["sqlite3"]}]}
+  match @env.get_env_var("MOON_HOST_OS") {
+    Some("windows") => println("{}")
+    _ => println(sqlite_link)
+  }
+}

@@ -1,0 +1,119 @@
+[
+  {
+    "id": "large-order-id",
+    "question": "What is the order ID for the order whose amount is 42.5?",
+    "ordered": false,
+    "expected_rows": [[["Integer", "9007199254740993"]]],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "orders",
+        "select": [["Column", {"table": "orders", "column": "id"}]],
+        "joins": [],
+        "filters": [["Compare", {"table": "orders", "column": "amount"}, "Equal", ["Real", 42.5]]],
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    "fixture_sql": {"sql": "SELECT id FROM orders WHERE amount = 42.5"}
+  },
+  {
+    "id": "spend-by-user",
+    "question": "Show each user name and total spend, highest total first.",
+    "ordered": true,
+    "expected_rows": [[["Text", "林"], ["Real", 50.0]], [["Text", "Sam"], ["Real", 20.0]]],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "users",
+        "select": [["Column", {"table": "users", "column": "name"}], ["Sum", {"table": "orders", "column": "amount"}]],
+        "joins": [{"table": "orders", "via": "users"}],
+        "filters": [],
+        "group_by": [{"table": "users", "column": "name"}],
+        "order_by": [{"position": 2, "descending": true}]
+      }
+    },
+    "fixture_sql": {"sql": "SELECT u.name, SUM(o.amount) FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.name ORDER BY 2 DESC"}
+  },
+  {
+    "id": "top-stock",
+    "question": "What is the title and available quantity of the product in the stock record with the largest available quantity? Return one row.",
+    "ordered": true,
+    "expected_rows": [[["Text", "Coffee"], ["Integer", "16"]]],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "stock",
+        "select": [["Column", {"table": "products", "column": "title"}], ["Column", {"table": "stock", "column": "available"}]],
+        "joins": [{"table": "products", "via": "stock"}],
+        "filters": [],
+        "group_by": [],
+        "order_by": [{"position": 2, "descending": true}],
+        "limit": 1
+      }
+    },
+    "fixture_sql": {"sql": "SELECT p.title, s.available FROM stock s JOIN products p ON p.region = s.region AND p.sku = s.sku ORDER BY 2 DESC LIMIT 1"}
+  },
+  {
+    "id": "missing-note-count",
+    "question": "How many orders have no note, meaning note is NULL?",
+    "ordered": false,
+    "expected_rows": [[["Integer", "1"]]],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "orders",
+        "select": ["CountAll"],
+        "joins": [],
+        "filters": [["IsNull", {"table": "orders", "column": "note"}]],
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    "fixture_sql": {"sql": "SELECT COUNT(*) FROM orders WHERE note IS NULL"}
+  },
+  {
+    "id": "empty-dataset-result",
+    "question": "List the IDs of orders for more than 1000.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "orders",
+        "select": [["Column", {"table": "orders", "column": "id"}]],
+        "joins": [],
+        "filters": [["Compare", {"table": "orders", "column": "amount"}, "Greater", ["Integer", "1000"]]],
+        "group_by": [],
+        "order_by": []
+      }
+    },
+    "fixture_sql": {"sql": "SELECT id FROM orders WHERE amount > 1000"}
+  },
+  {
+    "id": "stock-by-region",
+    "question": "列出每个区域及该区域的库存总量，不要求排序。",
+    "ordered": false,
+    "expected_rows": [[["Text", "west"], ["Integer", "16"]], [["Text", "east"], ["Integer", "5"]]],
+    "fixture_plan": {
+      "plan": {
+        "from_table": "stock",
+        "select": [["Column", {"table": "stock", "column": "region"}], ["Sum", {"table": "stock", "column": "available"}]],
+        "joins": [],
+        "filters": [],
+        "group_by": [{"table": "stock", "column": "region"}],
+        "order_by": []
+      }
+    },
+    "fixture_sql": {"sql": "SELECT region, SUM(available) FROM stock GROUP BY region"}
+  },
+  {
+    "id": "unanswerable-profit",
+    "question": "Which user generated the highest net profit after shipping costs?",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "The database contains order amounts but no costs."},
+    "fixture_sql": {"no_answer": "The database does not contain shipping costs or profit."}
+  },
+  {
+    "id": "unanswerable-delivery-date",
+    "question": "分别列出上周每天妥投的订单数。",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "没有妥投时间或配送事件。"},
+    "fixture_sql": {"no_answer": "表中没有订单妥投日期。"}
+  }
+]

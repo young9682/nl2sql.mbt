@@ -6,7 +6,7 @@
 
 参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。WASM 放在参赛版之后。
 
-> **Current status** — M0 and M1 are complete. The current demo renders a sample schema and shows SQL screening. Native SQLite execution, planning, and answers are planned for M2–M4.
+> **Current status** — M0–M2, structured query planning, and the comparison runner are implemented. The M3 live-model report and M4 native CLI are pending.
 
 ## Why
 
@@ -28,14 +28,14 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 - **Deliverables** include `sqlcheck.check_read_only` and a CLI demonstration using the `moonbit-community/sqlparser` lexer.
 - **Acceptance** requires tests for `SELECT`, CTE queries, and statement splitting, including semicolons inside strings. Empty input and statements beginning with write or DDL keywords must be rejected with a reason. This stage provides the token check described in [Known limitations](#known-limitations-m1).
 
-### M2 · Native SQLite library (planned)
+### M2 · Native SQLite library (implemented)
 
-- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. Evaluate `mizchi/sqlite` against the required SQLite APIs and record the driver choice. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
+- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. The adapter uses SQLite's C API to access statement tails, the authorizer, and the progress handler. These controls are outside the published `mizchi/sqlite` API. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
 - **Acceptance** requires a real SQLite file opened read-only and a single prepared query checked by SQLite before execution. Integration tests cover a parameterized `SELECT`, a CTE query, and typed results including `NULL` and 64-bit integers. They also verify rejection of writes (including writes preceded by `WITH`), extra statements, `ATTACH`, and extension loading. Verify that the fixture's data is unchanged after rejection and that timeouts and result truncation are reported explicitly.
 
-### M3 · Structured query planning and evaluation (planned)
+### M3 · Structured query planning and evaluation (live-model report pending)
 
-- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. Provide an OpenAI-compatible adapter and allow tests to supply deterministic model responses. [Candidate LLM client](https://mooncakes.io/docs/mizchi/llm)
+- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. The OpenAI-compatible Chat Completions adapter uses `moonbitlang/async/http`. Tests can supply deterministic model responses. [MoonBit HTTP client](https://mooncakes.io/docs/moonbitlang/async/http)
 - **Acceptance for planning** requires a parameterized filter and a join with aggregation to return the expected rows. Verify that the same accepted plan and schema produce identical SQL and bindings. Malformed plans, unknown tables or columns, and invalid joins must fail with a structured reason before any data query runs. An explicit no-answer response must also skip data query execution.
 - **Evaluation deliverables** include a fixed question set with expected rows or an expected no-answer outcome, a runnable comparison script, and a live-model report with per-question outcomes and aggregate results.
 - **Acceptance for evaluation** requires comparing structured planning with direct model-generated SQL on the same questions, database snapshot, schema context, model version, and generation settings. Both paths can abstain and use the same M2 execution policy and limits for queries. Report result accuracy on answerable questions, invalid query or plan rate across the set, and correct abstention on unanswerable questions. Include counts and denominators, rejected cases, and the commands to reproduce the comparison.
@@ -53,7 +53,7 @@ The submission targets a native SQLite library and CLI. From a clean checkout, a
 
 ## Try the current demo
 
-From a checkout, run the schema and SQL screening demo with `moon run cmd/main` and its tests with `moon test`.
+From a checkout, run the schema and SQL screening demo with `moon run cmd/main`. Run the core tests with `moon test --target wasm`.
 
 After the first package release, add the library to a MoonBit project with the following command.
 
@@ -71,9 +71,43 @@ let check = @sqlcheck.check_read_only("DELETE FROM users")
 // check.reason == "statement 1: not a read-only query (starts with Delete)"
 ```
 
+## Native SQLite API
+
+Import `young9682/nl2sql/sqlite` in a Native package. Each `query` call opens its own read-only connection to an existing local SQLite file. The API binds values by SQLite parameter index and returns columns and typed cells in result order.
+
+```moonbit
+let result = @sqlite.query(
+  "sqlite/fixtures/orders.db",
+  "SELECT id, amount FROM orders WHERE user_id = ? ORDER BY id",
+  params=[Integer(1L)],
+  max_rows=10,
+)
+```
+
+The default limits are 100 returned rows and five seconds of query work. The SQLite adapter accepts a single read query, applies an authorizer, and blocks attached databases, extension loading, and virtual tables. SQL text is limited to 64 KiB, and SQLite's value/row size limit is 1 MiB. The time limit interrupts SQLite work and is checked between rows. `truncated` is true when an additional row exists beyond the limit.
+
+Use `@sqlite.read_catalog(path)` to inspect the main database's regular tables, columns, and declared foreign keys. The catalog is read in one SQLite statement and preserves composite key order. Catalog inspection requires SQLite 3.37 or later. Linux builds use SQLite development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`.
+
+Run `moon test --target native` from the repository root to exercise the fixture. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
+
+## Compare structured planning with direct SQL
+
+`@planner.ask` takes a database path, a question, and a model callback. The library sends the question, schema, and foreign keys to the model. It validates the returned plan before opening a data query and returns the executed SQL, bindings, rows, and catalog as evidence.
+
+Run the comparison from the repository root.
+
+```bash
+moon run --quiet cmd/eval -- --fixture
+moon run --quiet cmd/eval -- --live
+```
+
+Fixture mode replays checked-in model responses across both paths. Live mode uses `NL2SQL_ENDPOINT` for the full Chat Completions URL, `NL2SQL_MODEL` for the model identifier, and `NL2SQL_API_KEY` when the endpoint requires a bearer token.
+
+Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Row comparison preserves duplicates and checks row order when requested. Keep the repository revision and model version with any live report.
+
 ## Known limitations (M1)
 
-- `sqlcheck.check_read_only` checks the first token of each statement. A malformed `SELECT` can pass, and SQLite allows `WITH` before write operations. M2 enforces the query policy in SQLite. [SQLite WITH clause](https://www.sqlite.org/lang_with.html#overview)
+- `sqlcheck.check_read_only` checks the first token of each statement. A malformed `SELECT` can pass, and SQLite allows `WITH` before write operations. The native query API enforces its policy in SQLite. [SQLite WITH clause](https://www.sqlite.org/lang_with.html#overview)
 - `moonbit-community/sqlparser@0.5.2` has a known index-out-of-bounds panic in `Parser::parse_table_ref` on queries with `FROM <table>`. M1 uses the lexer while AST-level validation is deferred. [sqlparser package](https://mooncakes.io/docs/moonbit-community/sqlparser)
 
 ## Design principles
@@ -88,8 +122,9 @@ let check = @sqlcheck.check_read_only("DELETE FROM users")
 moon update        # refresh registry index (fresh checkouts)
 moon fmt           # format
 moon check         # type check
-moon test          # run tests
-moon info && moon fmt  # refresh .mbti interfaces
+moon test          # run the native SQLite integration and core tests
+moon test --target wasm  # run the portable core tests
+moon info && moon fmt    # refresh .mbti interfaces
 ```
 
 ## License

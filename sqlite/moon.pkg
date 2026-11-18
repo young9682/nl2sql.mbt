@@ -1,0 +1,14 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "young9682/nl2sql" @lib,
+}
+
+supported_targets = "native"
+
+// Derived traits are available through their trait implementations.
+
+warnings = "-79"
+
+options(
+  "native-stub": [ "sqlite.c" ],
+)
