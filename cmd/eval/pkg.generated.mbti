@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "young9682/nl2sql/cmd/eval"
+
+import {
+  "moonbitlang/core/json",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+#derive(@json.FromJson)
+type Case
+
+type Observation
+
+#derive(Eq, @json.ToJson)
+type Outcome
+
+// Type aliases
+
+// Traits

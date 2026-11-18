@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "young9682/nl2sql" @lib,
+  "young9682/nl2sql/plan",
+  "young9682/nl2sql/planner",
+  "young9682/nl2sql/sqlite",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")
