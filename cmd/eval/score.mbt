@@ -51,17 +51,6 @@ fn optional_rows(rows : Array[Json]?) -> Json {
 }
 
 ///|
-fn cell_json(cell : @sqlite.Value) -> Json {
-  match cell {
-    Null => ["Null"]
-    Integer(value) => ["Integer", Json::string(value.to_string())]
-    Real(value) => ["Real", Json::number(value)]
-    Text(value) => ["Text", Json::string(value)]
-    Blob(value) => ["Blob", @json.to_json(value.to_array())]
-  }
-}
-
-///|
 fn grade_abstention(question : Case, reason : String) -> Observation {
   let status = if question.expected_rows is Some(_) {
     FalseAbstention
@@ -78,7 +67,7 @@ fn grade_rows(
   params : Array[@sqlite.Value],
   result : @sqlite.QueryResult,
 ) -> Observation {
-  let rows = result.rows.map(row => Json::array(row.map(cell_json)))
+  let rows = result.rows.map(row => @json.to_json(row))
   let status = match question.expected_rows {
     None => UnexpectedAnswer
     Some(expected) =>
@@ -97,7 +86,7 @@ fn grade_rows(
       ""
     },
     sql: Some(sql),
-    params: params.map(cell_json),
+    params: params.map(param => @json.to_json(param)),
     rows: Some(rows),
     truncated: result.truncated,
   }

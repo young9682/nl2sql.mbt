@@ -29,5 +29,10 @@ jobs:
         run: moon test --target native
       - name: Replay both evaluation paths
         run: moon run --quiet cmd/eval -- --fixture
+      - name: Run the Native CLI demo without credentials
+        run: |
+          set -o pipefail
+          env -u NL2SQL_ENDPOINT -u NL2SQL_MODEL -u NL2SQL_API_KEY moon run --quiet cmd/nl2sql -- --demo \
+            | python3 -c 'import json, sys; report = json.load(sys.stdin); assert report["status"] == "ok"; assert [row[1][1] for row in report["result"]["rows"]] == [50, 20]'
       - name: moon test (Wasm core)
         run: moon test --target wasm

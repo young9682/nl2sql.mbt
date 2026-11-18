@@ -11,7 +11,7 @@ pub(all) enum Value {
 
 ///|
 /// Columns and cells are in SQLite result order. Column names may repeat.
-#derive(Debug)
+#derive(Debug, ToJson)
 pub(all) struct QueryResult {
   columns : Array[String]
   rows : Array[Array[Value]]
