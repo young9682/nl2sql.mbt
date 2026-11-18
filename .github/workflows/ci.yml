@@ -11,7 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install MoonBit toolchain
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+        # The pinned SQL parser's prettyprinter dependency uses implicit trait methods.
+        run: curl -fsSL --retry 3 https://cli.moonbitlang.com/install/unix.sh | bash -s -- '0.10.20+65efd5b93'
       - name: Add moon to PATH
         run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: moon update (refresh registry index)
