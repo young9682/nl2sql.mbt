@@ -152,6 +152,8 @@ Run `moon test --target native` from the repository root to exercise the fixture
 
 `@planner.ask` takes a database path, a question, and a model callback. The library sends the question, schema, and foreign keys to the model. It validates the returned plan before opening a data query and returns the executed SQL, bindings, rows, and catalog as evidence.
 
+The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite. The [planner follow-up](eval/live-model-report.md#follow-up-with-plan-examples-and-compatible-replies) records the effect of these changes and the new prompt examples on the fixed question set.
+
 Run the comparison from the repository root.
 
 ```bash
