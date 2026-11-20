@@ -83,3 +83,17 @@ $env:NL2SQL_ENDPOINT = 'http://127.0.0.1:18084/v1/chat/completions'
 moon run --quiet --target native cmd/eval -- --live > nl2sql-json-grammar.json
 if ($LASTEXITCODE -ne 0) { throw 'Live evaluation failed. Inspect nl2sql-json-grammar.json.' }
 ```
+
+## Follow-up with plan examples and compatible replies
+
+The updated planner prompt gives complete plan and abstention examples from unrelated schemas. The reply decoder treats a JSON null limit as omitted and accepts finite JSON numbers quoted as real filter values. Table, column, join, and projection validation still runs before SQL execution.
+
+The follow-up uses the same model, eight questions, SQLite snapshot, and server JSON grammar as the comparison above. On the structured path, the correct cases were the large order ID lookup, the missing-note count, and the empty result. The spend-by-user query executed with an unintended null filter and returned no rows. Plan validation rejected four other replies for unknown columns or invalid grouping. Neither path correctly abstained on either unanswerable question.
+
+| Metric | Original structured plan | Updated structured plan | Direct SQL |
+| --- | ---: | ---: | ---: |
+| Result accuracy | 0/6 | 3/6 | 4/6 |
+| Invalid output | 8/8 | 4/8 | 2/8 |
+| Correct abstention | 0/2 | 0/2 | 0/2 |
+
+The two follow-up runs produced byte-identical reports. Both paths recorded zero provider and execution failures. To reproduce, use evaluator revision `ff2c28544b0b5f34079a77a635efc98d3dbc16f8` and the JSON grammar server command under [Reproduce](#reproduce). [Raw follow-up results](results/qwen2.5-coder-1.5b-plan-followup.json)

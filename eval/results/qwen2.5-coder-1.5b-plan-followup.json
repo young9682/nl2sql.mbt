@@ -1,0 +1,377 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "sqlite/fixtures/orders.db",
+  "questions": "eval/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 3,
+      "total": 6,
+      "rate": 0.5
+    },
+    "invalid_output_rate": {
+      "count": 4,
+      "total": 8,
+      "rate": 0.5
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 2,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 4,
+      "total": 6,
+      "rate": 0.6666666666666666
+    },
+    "invalid_output_rate": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 2,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "large-order-id",
+      "question": "What is the order ID for the order whose amount is 42.5?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "9007199254740993"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"plan\":{\"from_table\":\"orders\",\"select\":[[\"Column\",{\"table\":\"orders\",\"column\":\"id\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"orders\",\"column\":\"amount\"},\"Equal\",[\"Real\",\"42.5\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"orders\".\"id\" FROM \"orders\" WHERE \"orders\".\"amount\" = ?",
+        "params": [
+          [
+            "Real",
+            42.5
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "9007199254740993"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT orders.id FROM orders INNER JOIN users ON orders.user_id = users.id WHERE orders.amount = 42.5\"}",
+        "sql": "SELECT orders.id FROM orders INNER JOIN users ON orders.user_id = users.id WHERE orders.amount = 42.5",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "9007199254740993"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "spend-by-user",
+      "question": "Show each user name and total spend, highest total first.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "林"
+          ],
+          [
+            "Real",
+            50
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Sam"
+          ],
+          [
+            "Real",
+            20
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "model_reply": "{\"plan\":{\"from_table\":\"orders\",\"select\":[[\"Column\",{\"table\":\"users\",\"column\":\"name\"}],[\"Sum\",{\"table\":\"orders\",\"column\":\"amount\"}]],\"joins\":[{\"table\":\"users\",\"via\":\"orders\"}],\"filters\":[[\"IsNull\",{\"table\":\"orders\",\"column\":\"user_id\"}]],\"group_by\":[{\"table\":\"users\",\"column\":\"name\"}],\"order_by\":[{\"position\":2,\"descending\":true}]}}",
+        "sql": "SELECT \"users\".\"name\", SUM(\"orders\".\"amount\") FROM \"orders\" JOIN \"users\" ON \"users\".\"id\" = +\"orders\".\"user_id\" WHERE \"orders\".\"user_id\" IS NULL GROUP BY \"users\".\"name\" ORDER BY 2 DESC",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT u.name, SUM(o.amount) AS total_spend FROM orders o JOIN users u ON o.user_id = u.id GROUP BY u.name ORDER BY total_spend DESC LIMIT 1\"}",
+        "sql": "SELECT u.name, SUM(o.amount) AS total_spend FROM orders o JOIN users u ON o.user_id = u.id GROUP BY u.name ORDER BY total_spend DESC LIMIT 1",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "林"
+            ],
+            [
+              "Real",
+              50
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "top-stock",
+      "question": "What is the title and available quantity of the product in the stock record with the largest available quantity? Return one row.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Coffee"
+          ],
+          [
+            "Integer",
+            "16"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "UnknownColumn({ table: \"stock\", column: \"title\" })",
+        "model_reply": "{\"plan\":{\"from_table\":\"stock\",\"select\":[[\"Column\",{\"table\":\"stock\",\"column\":\"title\"}],[\"Column\",{\"table\":\"stock\",\"column\":\"available\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"stock\",\"column\":\"available\"}]],\"group_by\":[],\"order_by\":[{\"position\":2,\"descending\":true}],\"limit\":1}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T1.title\")",
+        "model_reply": "{\"sql\":\"SELECT T1.title, T1.available FROM stock AS T1 INNER JOIN products AS T2 ON T1.region = T2.region AND T1.sku = T2.sku ORDER BY T1.available DESC LIMIT 1\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-note-count",
+      "question": "How many orders have no note, meaning note is NULL?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "1"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"orders\",\n    \"select\": [\n      [\"Count\", {\"table\": \"orders\", \"column\": \"id\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"IsNull\", {\"table\": \"orders\", \"column\": \"note\"}]\n    ],\n    \"group_by\": [],\n    \"order_by\": [],\n    \"limit\": null\n  }\n}",
+        "sql": "SELECT COUNT(\"orders\".\"id\") FROM \"orders\" WHERE \"orders\".\"note\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT COUNT(*) FROM orders WHERE note IS NULL\"}",
+        "sql": "SELECT COUNT(*) FROM orders WHERE note IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "empty-dataset-result",
+      "question": "List the IDs of orders for more than 1000.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"plan\":{\"from_table\":\"orders\",\"select\":[[\"Column\",{\"table\":\"orders\",\"column\":\"id\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"orders\",\"column\":\"amount\"},\"Greater\",[\"Real\",\"1000\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"orders\".\"id\" FROM \"orders\" WHERE \"orders\".\"amount\" > ?",
+        "params": [
+          [
+            "Real",
+            1000
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT o.id FROM orders o JOIN users u ON o.user_id = u.id WHERE o.amount > 1000\"}",
+        "sql": "SELECT o.id FROM orders o JOIN users u ON o.user_id = u.id WHERE o.amount > 1000",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "stock-by-region",
+      "question": "列出每个区域及该区域的库存总量，不要求排序。",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "west"
+          ],
+          [
+            "Integer",
+            "16"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "east"
+          ],
+          [
+            "Integer",
+            "5"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "MissingGroupBy({ table: \"stock\", column: \"region\" })",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"stock\",\n    \"select\": [\n      [\"Column\", {\"table\": \"stock\", \"column\": \"region\"}],\n      [\"Sum\", {\"table\": \"stock\", \"column\": \"available\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [],\n    \"group_by\": [],\n    \"order_by\": [],\n    \"limit\": null\n  }\n}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT p.region, SUM(s.available) AS total_inventory FROM products p JOIN stock s ON p.region = s.region AND p.sku = s.sku GROUP BY p.region\"}",
+        "sql": "SELECT p.region, SUM(s.available) AS total_inventory FROM products p JOIN stock s ON p.region = s.region AND p.sku = s.sku GROUP BY p.region",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "east"
+            ],
+            [
+              "Integer",
+              "5"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "west"
+            ],
+            [
+              "Integer",
+              "16"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "unanswerable-profit",
+      "question": "Which user generated the highest net profit after shipping costs?",
+      "expected_rows": null,
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "MissingGroupBy({ table: \"orders\", column: \"user_id\" })",
+        "model_reply": "{\"plan\":{\"from_table\":\"orders\",\"select\":[[\"Column\",{\"table\":\"orders\",\"column\":\"user_id\"}],[\"Sum\",{\"table\":\"orders\",\"column\":\"amount\"}]],\"joins\":[{\"table\":\"users\",\"via\":\"orders\"}],\"filters\":[[\"IsNull\",{\"table\":\"orders\",\"column\":\"note\"}]],\"group_by\":[{\"table\":\"users\",\"column\":\"name\"}],\"order_by\":[{\"position\":2,\"descending\":true}]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "UnexpectedAnswer",
+        "detail": "",
+        "model_reply": "{\"sql\":\"SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id WHERE o.amount > 0 GROUP BY u.name ORDER BY SUM(o.amount) DESC LIMIT 1\"}",
+        "sql": "SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id WHERE o.amount > 0 GROUP BY u.name ORDER BY SUM(o.amount) DESC LIMIT 1",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "林"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "unanswerable-delivery-date",
+      "question": "分别列出上周每天妥投的订单数。",
+      "expected_rows": null,
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "UnknownColumn({ table: \"orders\", column: \"date\" })",
+        "model_reply": "{\"plan\":{\"from_table\":\"orders\",\"select\":[[\"Count\",{\"table\":\"orders\",\"column\":\"id\"}]],\"joins\":[{\"table\":\"users\",\"via\":\"orders\",\"on\":\"users.id=orders.user_id\"}],\"filters\":[[\"IsNull\",{\"table\":\"orders\",\"column\":\"receipt\"}]],\"group_by\":[{\"table\":\"orders\",\"column\":\"date\"}],\"order_by\":[{\"position\":1,\"descending\":true}]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: orders.created_at\")",
+        "model_reply": "{\"sql\":\"SELECT DATE(orders.created_at) AS date, COUNT(orders.id) AS order_count FROM orders JOIN users ON orders.user_id = users.id WHERE DATE(orders.created_at) = DATE('now','-7 days') GROUP BY DATE(orders.created_at)\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    }
+  ]
+}
