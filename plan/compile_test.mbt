@@ -14,6 +14,39 @@ fn sample_catalog() -> @lib.Catalog {
 }
 
 ///|
+test "quoted finite reals and a null limit compile like canonical plan JSON" {
+  let catalog = sample_catalog()
+  let canonical =
+    #|{"plan":{"from_table":"orders","select":["CountAll"],"joins":[],"filters":[["Compare",{"table":"orders","column":"amount"},"GreaterEqual",["Real",42.5]]],"group_by":[],"order_by":[]}}
+  let compatible =
+    #|{"plan":{"from_table":"orders","select":["CountAll"],"joins":[],"filters":[["Compare",{"table":"orders","column":"amount"},"GreaterEqual",["Real","4.25e1"]]],"group_by":[],"order_by":[],"limit":null}}
+  guard @plan.compile_reply(catalog, canonical) is Query(expected) &&
+    @plan.compile_reply(catalog, compatible) is Query(actual) else {
+    fail("expected both spellings to produce a query")
+  }
+  assert_eq(actual.sql, expected.sql)
+  assert_eq(actual.params, [Real(42.5)])
+  assert_eq(actual.params, expected.params)
+}
+
+///|
+test "reply normalization rejects malformed and nonfinite decimal strings" {
+  let catalog = sample_catalog()
+  for literal in ["42.5 extra", "1e999", "null"] {
+    let reply =
+      $|{"plan":{"from_table":"orders","select":["CountAll"],"joins":[],"filters":[["Compare",{"table":"orders","column":"amount"},"GreaterEqual",["Real","\{literal}"]]],"group_by":[],"order_by":[]}}
+    let invalid = try {
+      ignore(@plan.compile_reply(catalog, reply))
+      false
+    } catch {
+      @plan.ReplyError::InvalidReply(_) => true
+      error => raise error
+    }
+    assert_true(invalid)
+  }
+}
+
+///|
 fn aggregate_plan() -> @plan.Plan {
   let email : @plan.ColumnRef = { table: "users", column: "email", }
   {

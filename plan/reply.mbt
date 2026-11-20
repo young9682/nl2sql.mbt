@@ -28,6 +28,7 @@ pub fn compile_reply(
   }
   match (fields.get("plan"), fields.get("no_answer")) {
     (Some(value), None) => {
+      normalize_plan_json(value)
       let plan : Plan = @json.from_json(value) catch {
         _ => raise InvalidReply("plan does not match the requested structure")
       }
@@ -36,5 +37,26 @@ pub fn compile_reply(
     (None, Some(String(reason))) if !reason.trim().is_empty() =>
       NoAnswer(reason)
     _ => raise InvalidReply("expected a plan or a no-answer reason")
+  }
+}
+
+///|
+/// Normalizes equivalent spellings in the parsed reply before typed decoding.
+fn normalize_plan_json(plan : Json) -> Unit {
+  guard plan is Object(fields) else { return }
+  if fields.get("limit") is Some(Null) {
+    fields.remove("limit")
+  }
+  guard fields.get("filters") is Some(Array(filters)) else { return }
+  for predicate in filters {
+    if predicate is Array(parts) &&
+      predicate is ["Compare", _, _, ["Real", String(decimal)]] {
+      let parsed = @json.parse(decimal, max_nesting_depth=1) catch {
+        _ => continue
+      }
+      if parsed is Number(number, ..) && number.is_finite() {
+        parts[3] = ["Real", parsed]
+      }
+    }
   }
 }
