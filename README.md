@@ -1,86 +1,100 @@
 # nl2sql
 
-[![ci](https://github.com/young9682/nl2sql.mbt/actions/workflows/ci.yml/badge.svg)](https://github.com/young9682/nl2sql.mbt/actions)
+[![ci](https://github.com/young9682/nl2sql.mbt/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/young9682/nl2sql.mbt/actions/workflows/ci.yml?query=branch%3Amain)
 
-`nl2sql` is a MoonBit project for answering natural-language questions about SQLite data. The hackathon release targets a native library and CLI that run read-only queries and return answers backed by the executed SQL, result rows, and schema.
+`nl2sql` is a MoonBit library and Native CLI for asking natural-language questions about local SQLite data. It validates a structured query plan against the database catalog, compiles it to parameterized SQL, and returns the executed SQL, bindings, and typed rows as evidence.
 
-参赛版面向本地 SQLite 数据问答，先交付可复用的 MoonBit Native 库和 CLI。回答附带实际执行的 SQL、结果行和 schema。参赛版之后的 WASM 演示可在 Node.js 本地复现。
-
-> **Current status** — M0–M2, structured query planning, the comparison runner, and the Native CLI are implemented. The public SQLite API has been verified in a separate MoonBit inventory-report module. M5 has a credential-free Node.js WasmGC demo. The [M3 live-model report](eval/live-model-report.md) records the paired evaluation.
-
-## Why
-
-- Data Q&A is the most common "read-only analytics" ask for apps and dashboards — most teams just want `SELECT` answers without shipping a SQL client.
-- The native library gives MoonBit callers the same SQLite execution policy and typed results as the CLI.
-- Executed SQL, bound parameters, result rows, and the schema give users a way to check an answer against the database.
-
-## Hackathon roadmap
-
-The submission targets a native SQLite library and CLI. From a clean checkout, a reviewer can follow the README to ask a natural-language question against a bundled SQLite database and verify the answer against the query results. M4 is the submission milestone. The acceptance checks below are project criteria mapped to the event's [completion requirements](https://moonbitlang.github.io/Hackathon2026/#directions) and [quarterly scoring rubric](https://moonbitlang.github.io/Hackathon2026/#quarterly-scoring).
-
-### M0 · Schema model (complete)
-
-- **Deliverables** include `Schema`, `Table`, `Column`, and APIs for schema digests, SQLite DDL, and JSON.
-- **Acceptance** requires tests for the sample schema's digest, DDL, and JSON, exact table lookup, and escaping of special characters in JSON.
-
-### M1 · SQL screening (complete)
-
-- **Deliverables** include `sqlcheck.check_read_only` and a CLI demonstration using the `moonbit-community/sqlparser` lexer.
-- **Acceptance** requires tests for `SELECT`, CTE queries, and statement splitting, including semicolons inside strings. Empty input and statements beginning with write or DDL keywords must be rejected with a reason. This stage provides the token check described in [Known limitations](#known-limitations-m1).
-
-### M2 · Native SQLite library (implemented)
-
-- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. The adapter uses SQLite's C API to access statement tails, the authorizer, and the progress handler. These controls are outside the published `mizchi/sqlite` API. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
-- **Acceptance** requires a real SQLite file opened read-only and a single prepared query checked by SQLite before execution. Integration tests cover a parameterized `SELECT`, a CTE query, and typed results including `NULL` and 64-bit integers. They also verify rejection of writes (including writes preceded by `WITH`), extra statements, `ATTACH`, and extension loading. Verify that the fixture's data is unchanged after rejection and that timeouts and result truncation are reported explicitly.
-
-### M3 · Structured query planning and evaluation (complete)
-
-- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. The OpenAI-compatible Chat Completions adapter uses `moonbitlang/async/http`. Tests can supply deterministic model responses. [MoonBit HTTP client](https://mooncakes.io/docs/moonbitlang/async/http)
-- **Acceptance for planning** requires a parameterized filter and a join with aggregation to return the expected rows. Verify that the same accepted plan and schema produce identical SQL and bindings. Malformed plans, unknown tables or columns, and invalid joins must fail with a structured reason before any data query runs. An explicit no-answer response must also skip data query execution.
-- **Evaluation deliverables** include a fixed question set with expected rows or an expected no-answer outcome, a runnable comparison script, and a live-model report with per-question outcomes and aggregate results.
-- **Acceptance for evaluation** requires comparing structured planning with direct model-generated SQL on the same questions, database snapshot, schema context, model version, and generation settings. Both paths can abstain and use the same M2 execution policy and limits for queries. Report result accuracy on answerable questions, invalid query or plan rate across the set, and correct abstention on unanswerable questions. Include counts and denominators, rejected cases, and the commands to reproduce the comparison.
-
-### M4 · Evidence-backed answers and native CLI
-
-- **Deliverables** include a native CLI that accepts a database path and question, a README walkthrough from build to question to evidence, and an integration in a separate MoonBit project that imports the public library API for one of its own workflows. Each successful CLI answer includes the executed SQL, bound parameters, returned rows, and the schema used for planning. Distinguish empty results, truncated output, rejected queries, and execution failures.
-- **Acceptance for the CLI** requires a reviewer to reproduce the full workflow with the sample database and deterministic model responses without an API key. Native CI must build the CLI and run the library and CLI integration tests. The repository must include the live-model walkthrough, the M3 comparison report, and an explanation of the execution policy, platform choices, and third-party dependencies, with the work traceable through commits, issues, and PRs.
-- **Acceptance for the downstream integration** requires a clean checkout of the separate MoonBit project to build against a documented `nl2sql` version or revision and call the public API directly. Its tests or runnable example must show a successful read with typed results, rejection of a disallowed statement, and explicit handling of a query timeout or result truncation. Include a link to the integration and reproduction commands in this README.
-
-### M5 · WASM deployment (Node.js demo)
-
-- **Deliverables** include a documented target and a SQLite adapter for that target. Evaluate a MoonBit WASM build with host-provided SQLite separately from a MoonBit JS build that loads SQLite WASM.
-- **Acceptance** requires a reproducible build and demo on the selected runtime, with the same single-query, read-only, typed-results, timeout, and truncation checks used for the native library.
-- **Selected runtime** is Node.js with a MoonBit WasmGC planner and host-provided SQLite WASM. The MoonBit JavaScript build runs against the same SQLite adapter for comparison. The [WASM demo](#wasm-demo) documents both builds and the checks.
+项目已通过申报审核，当前以 Native SQLite 库和 CLI 为主要验收路径。评委可从 [无密钥演示](#native-cli-demo) 开始，核对执行结果，再查看 [下游接入](#independent-moonbit-integration) 和 [真实模型评测](#compare-structured-planning-with-direct-sql)。WASM 扩展演示在 Node.js 上运行。
 
 ## Native CLI demo
 
-From the repository root, run the bundled SQLite demo. It replays a fixed model response and executes the generated read-only query against the sample database, with no endpoint or API key needed.
+Use the MoonBit compiler `v0.10.20+65efd5b93` used by CI. On Ubuntu, install a C compiler, `libsqlite3-dev`, and `libssl-dev`. On Windows, install the MSVC C++ build tools and Windows SDK. Catalog inspection requires SQLite 3.37 or later.
+
+From a fresh checkout, run the commands below from the repository root. After the dependencies resolve, the demo replays a fixed model reply and executes a real read-only query on the bundled SQLite database without an endpoint or API key.
 
 ```bash
+moon update
 moon run --quiet --target native cmd/nl2sql -- --demo
-moon run --quiet --target native cmd/nl2sql -- --demo unanswerable-profit
-moon run --quiet --target native cmd/nl2sql -- --max-rows 1 --demo spend-by-user
 ```
 
-The default question asks for each user's total spend. The returned rows show `林` at 50 and `Sam` at 20. The JSON includes the actual `sql`, bound `params`, typed `result` rows, and the schema and foreign keys in `context`. Statuses distinguish successful rows, empty results, truncation, and a no-answer response. Argument and execution errors return an error status and a nonzero exit code.
+The JSON includes the executed `sql`, bound `params`, typed `result` rows, and the schema and foreign keys in `context`. Use the arguments below after the `--` separator to check the main result states.
 
-For a live query, set `NL2SQL_ENDPOINT` to the full Chat Completions URL and `NL2SQL_MODEL` to the model identifier. Set `NL2SQL_API_KEY` when the endpoint requires a bearer token. Then pass an existing SQLite file and the question.
+| Arguments | Status | Expected result |
+| --- | --- | --- |
+| `--demo` | `ok` | Total spend for `林` is 50 and for `Sam` is 20. |
+| `--demo empty-dataset-result` | `empty` | No order amount exceeds 1000. |
+| `--max-rows 1 --demo spend-by-user` | `truncated` | One row for `林`, with `result.truncated` set to `true`. |
+| `--demo unanswerable-profit` | `no_answer` | The replayed reply explains that the database lacks costs. |
+
+Argument and execution errors return an error status and a nonzero exit code. Use `--demo CASE_ID` with any ID in the fixed question set. [Fixture questions and expected rows](eval/questions.json)
+
+### Live queries
+
+Set `NL2SQL_ENDPOINT` to the full Chat Completions URL, `NL2SQL_MODEL` to the model identifier, and `NL2SQL_API_KEY` if the endpoint requires a bearer token. Pass an existing SQLite file and a question.
 
 ```bash
 moon run --quiet --target native cmd/nl2sql -- --db sqlite/fixtures/orders.db "What did each user spend?"
 ```
 
-Use `--demo CASE_ID` with any ID in the [fixed question set](eval/questions.json), or `--help` for the available options.
+## Native SQLite API
+
+Import `young9682/nl2sql/sqlite` in a Native package. Each `query` call opens its own read-only connection to an existing local SQLite file. The API binds values by SQLite parameter index and returns columns and typed cells in result order.
+
+```moonbit
+let result = @sqlite.query(
+  "sqlite/fixtures/orders.db",
+  "SELECT id, amount FROM orders WHERE user_id = ? ORDER BY id",
+  params=[Integer(1L)],
+  max_rows=10,
+)
+```
+
+The default limits are 100 returned rows and five seconds of query work. The SQLite adapter accepts a single read query, applies an authorizer, and blocks attached databases, extension loading, and virtual tables. SQL text is limited to 64 KiB, and SQLite's value/row size limit is 1 MiB. The time limit interrupts SQLite work and is checked between rows. `truncated` is true when an additional row exists beyond the limit.
+
+Use `@sqlite.read_catalog(path)` to inspect the main database's regular tables, columns, and declared foreign keys. The catalog is read in one SQLite statement and preserves composite key order. Catalog inspection requires SQLite 3.37 or later. Linux builds use SQLite development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`.
+
+Run `moon test --target native` from the repository root to exercise the fixture. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
 
 ## Independent MoonBit integration
 
-The [inventory report](examples/inventory-report/README.md) is a separate MoonBit module that uses `young9682/nl2sql/sqlite` to find low-stock products. Its tests cover typed results, write rejection, and reporting a truncated result as partial. From the repository root, run the following commands.
+The inventory report is a separate MoonBit module that imports `young9682/nl2sql/sqlite` to find low-stock products. Its tests cover typed results, write rejection, and reporting a truncated result as partial. Run the following commands from the repository root. [Dependency and workspace setup](examples/inventory-report/README.md)
 
 ```bash
 cd examples/inventory-report
 moon test --target native .
 moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1
 ```
+
+The report returns `partial` with the `east` warehouse's `Tea` entry and an integer quantity of 5.
+
+A public fork of the existing `mizchi/sqlc_gen_moonbit` project imports `young9682/nl2sql/planner` in its Native SQLite user-directory example. The original account workflow creates and updates users, deletes Bob, and writes the resulting database file. The audit returns only Alice Smith (ID 1) and verifies the file's SHA-256 is identical before and after the query. The Windows reproduction uses a fixed model reply and pins the `nl2sql` revision to `ab67b85`. [Fork source and reproduction steps](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/NL2SQL-AUDIT.md) · [Recorded JSON](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/audit-result.json)
+
+## Compare structured planning with direct SQL
+
+`@planner.ask` takes a database path, a question, and a model callback. The library sends the question, schema, and foreign keys to the model. It validates the returned plan before opening a data query and returns the executed SQL, bindings, rows, and catalog as evidence.
+
+The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite.
+
+The latest live-model follow-up uses Qwen2.5-Coder 1.5B and the same eight questions, SQLite snapshot, and JSON grammar for both paths. Repeated runs produced identical reports.
+
+| Metric | Structured plan before update | Structured plan after update | Direct SQL |
+| --- | ---: | ---: | ---: |
+| Correct results on answerable questions | 0/6 | 3/6 | 4/6 |
+| Invalid output across all questions | 8/8 | 4/8 | 2/8 |
+| Correct abstention on unanswerable questions | 0/2 | 0/2 | 0/2 |
+
+These results describe the tested model and question set. The report records the rejected plans, an executable query that returned the wrong rows, and reproduction steps. [Planner follow-up](eval/live-model-report.md#follow-up-with-plan-examples-and-compatible-replies)
+
+Run the comparison from the repository root.
+
+```bash
+moon run --quiet --target native cmd/eval -- --fixture
+moon run --quiet --target native cmd/eval -- --live
+```
+
+Fixture mode replays checked-in model responses across both paths. Live mode uses `NL2SQL_ENDPOINT` for the full Chat Completions URL, `NL2SQL_MODEL` for the model identifier, and `NL2SQL_API_KEY` when the endpoint requires a bearer token.
+
+Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Live mode also records each original model reply. Row comparison preserves duplicates and checks row order when requested. The paired runs, raw output, and reproduction commands are in the [M3 live-model report](eval/live-model-report.md).
 
 ## WASM demo
 
@@ -129,42 +143,6 @@ let check = @sqlcheck.check_read_only("DELETE FROM users")
 // check.reason == "statement 1: not a read-only query (starts with Delete)"
 ```
 
-## Native SQLite API
-
-Import `young9682/nl2sql/sqlite` in a Native package. Each `query` call opens its own read-only connection to an existing local SQLite file. The API binds values by SQLite parameter index and returns columns and typed cells in result order.
-
-```moonbit
-let result = @sqlite.query(
-  "sqlite/fixtures/orders.db",
-  "SELECT id, amount FROM orders WHERE user_id = ? ORDER BY id",
-  params=[Integer(1L)],
-  max_rows=10,
-)
-```
-
-The default limits are 100 returned rows and five seconds of query work. The SQLite adapter accepts a single read query, applies an authorizer, and blocks attached databases, extension loading, and virtual tables. SQL text is limited to 64 KiB, and SQLite's value/row size limit is 1 MiB. The time limit interrupts SQLite work and is checked between rows. `truncated` is true when an additional row exists beyond the limit.
-
-Use `@sqlite.read_catalog(path)` to inspect the main database's regular tables, columns, and declared foreign keys. The catalog is read in one SQLite statement and preserves composite key order. Catalog inspection requires SQLite 3.37 or later. Linux builds use SQLite development headers and libraries (`libsqlite3-dev` on Ubuntu). Windows uses MSVC and the SDK's `winsqlite3`.
-
-Run `moon test --target native` from the repository root to exercise the fixture. The fixture definition is available in [orders.sql](sqlite/fixtures/orders.sql).
-
-## Compare structured planning with direct SQL
-
-`@planner.ask` takes a database path, a question, and a model callback. The library sends the question, schema, and foreign keys to the model. It validates the returned plan before opening a data query and returns the executed SQL, bindings, rows, and catalog as evidence.
-
-The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite. The [planner follow-up](eval/live-model-report.md#follow-up-with-plan-examples-and-compatible-replies) records the effect of these changes and the new prompt examples on the fixed question set.
-
-Run the comparison from the repository root.
-
-```bash
-moon run --quiet cmd/eval -- --fixture
-moon run --quiet cmd/eval -- --live
-```
-
-Fixture mode replays checked-in model responses across both paths. Live mode uses `NL2SQL_ENDPOINT` for the full Chat Completions URL, `NL2SQL_MODEL` for the model identifier, and `NL2SQL_API_KEY` when the endpoint requires a bearer token.
-
-Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Live mode also records each original model reply. Row comparison preserves duplicates and checks row order when requested. The paired runs, raw output, and reproduction commands are in the [M3 live-model report](eval/live-model-report.md).
-
 ## Known limitations (M1)
 
 - `sqlcheck.check_read_only` checks the first token of each statement. A malformed `SELECT` can pass, and SQLite allows `WITH` before write operations. The native query API enforces its policy in SQLite. [SQLite WITH clause](https://www.sqlite.org/lang_with.html#overview)
@@ -175,6 +153,44 @@ Both modes use the bundled SQLite snapshot and [fixed question set](eval/questio
 1. Enforce read-only execution at the SQLite boundary for both the library and CLI.
 2. Attach enough evidence to check each successful answer against its query results.
 3. Keep the schema model and query planning logic in MoonBit and isolate SQLite FFI in the execution adapter.
+
+## Hackathon roadmap
+
+M4 defines the Native acceptance scope and M5 covers the Node.js WASM extension. The checks below are project criteria mapped to the event's completion requirements and quarterly scoring rubric. [Completion requirements](https://moonbitlang.github.io/Hackathon2026/#directions) · [Quarterly scoring rubric](https://moonbitlang.github.io/Hackathon2026/#quarterly-scoring)
+
+### M0 · Schema model (complete)
+
+- **Deliverables** include `Schema`, `Table`, `Column`, and APIs for schema digests, SQLite DDL, and JSON.
+- **Acceptance** requires tests for the sample schema's digest, DDL, and JSON, exact table lookup, and escaping of special characters in JSON.
+
+### M1 · SQL screening (complete)
+
+- **Deliverables** include `sqlcheck.check_read_only` and a CLI demonstration using the `moonbit-community/sqlparser` lexer.
+- **Acceptance** requires tests for `SELECT`, CTE queries, and statement splitting, including semicolons inside strings. Empty input and statements beginning with write or DDL keywords must be rejected with a reason. This stage provides the token check described in [Known limitations](#known-limitations-m1).
+
+### M2 · Native SQLite library (implemented)
+
+- **Deliverables** include a callable MoonBit query API, a native SQLite adapter, and a bundled `.db` fixture. The API takes one SQL statement and bound parameters and returns ordered columns, typed rows, and truncation status or a structured error. The adapter uses SQLite's C API to access statement tails, the authorizer, and the progress handler. These controls are outside the published `mizchi/sqlite` API. [Candidate native binding](https://mooncakes.io/docs/mizchi/sqlite)
+- **Acceptance** requires a real SQLite file opened read-only and a single prepared query checked by SQLite before execution. Integration tests cover a parameterized `SELECT`, a CTE query, and typed results including `NULL` and 64-bit integers. They also verify rejection of writes (including writes preceded by `WITH`), extra statements, `ATTACH`, and extension loading. Verify that the fixture's data is unchanged after rejection and that timeouts and result truncation are reported explicitly.
+
+### M3 · Structured query planning and evaluation (complete)
+
+- **Deliverables** include a schema description derived from the queried database, including foreign-key relationships, and a typed query plan for table and column selection, joins, filters, grouping, and aggregation. The model returns a structured plan or an explicit no-answer response. MoonBit validates the plan against the actual schema and compiles accepted plans deterministically into parameterized SQLite SQL for the M2 API. The OpenAI-compatible Chat Completions adapter uses `moonbitlang/async/http`. Tests can supply deterministic model responses. [MoonBit HTTP client](https://mooncakes.io/docs/moonbitlang/async/http)
+- **Acceptance for planning** requires a parameterized filter and a join with aggregation to return the expected rows. Verify that the same accepted plan and schema produce identical SQL and bindings. Malformed plans, unknown tables or columns, and invalid joins must fail with a structured reason before any data query runs. An explicit no-answer response must also skip data query execution.
+- **Evaluation deliverables** include a fixed question set with expected rows or an expected no-answer outcome, a runnable comparison script, and a live-model report with per-question outcomes and aggregate results.
+- **Acceptance for evaluation** requires comparing structured planning with direct model-generated SQL on the same questions, database snapshot, schema context, model version, and generation settings. Both paths can abstain and use the same M2 execution policy and limits for queries. Report result accuracy on answerable questions, invalid query or plan rate across the set, and correct abstention on unanswerable questions. Include counts and denominators, rejected cases, and the commands to reproduce the comparison.
+
+### M4 · Evidence-backed answers and native CLI (verified)
+
+- **Deliverables** include a native CLI that accepts a database path and question, a README walkthrough from build to question to evidence, and an integration in a separate MoonBit project that imports the public library API for one of its own workflows. Each successful CLI answer includes the executed SQL, bound parameters, returned rows, and the schema used for planning. Distinguish empty results, truncated output, rejected queries, and execution failures.
+- **Acceptance for the CLI** requires a reviewer to reproduce the full workflow with the sample database and deterministic model responses without an API key. Native CI must build the CLI and run the library and CLI integration tests. The repository must include the live-model walkthrough, the M3 comparison report, and an explanation of the execution policy, platform choices, and third-party dependencies, with the work traceable through commits, issues, and PRs.
+- **Acceptance for the downstream integration** requires a clean checkout of the separate MoonBit project to build against a documented `nl2sql` version or revision and call the public API directly. Its tests or runnable example must show a successful read with typed results, rejection of a disallowed statement, and explicit handling of a query timeout or result truncation. Include a link to the integration and reproduction commands in this README.
+
+### M5 · WASM deployment (Node.js demo)
+
+- **Deliverables** include a documented target and a SQLite adapter for that target. Evaluate a MoonBit WASM build with host-provided SQLite separately from a MoonBit JS build that loads SQLite WASM.
+- **Acceptance** requires a reproducible build and demo on the selected runtime, with the same single-query, read-only, typed-results, timeout, and truncation checks used for the native library.
+- **Selected runtime** is Node.js with a MoonBit WasmGC planner and host-provided SQLite WASM. The MoonBit JavaScript build runs against the same SQLite adapter for comparison. The [WASM demo](#wasm-demo) documents both builds and the checks.
 
 ## Development
 
