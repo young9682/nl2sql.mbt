@@ -302,3 +302,104 @@ async test "an opted-in retry uses declared edges and revalidates the replacemen
     }
   }
 }
+
+///|
+let tool_prices =
+  #|{"plan":{"from_table":"tools","select":[["Column",{"table":"tools","column":"price"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+
+///|
+async test "text filter review preserves negative, alternative and partial matches" {
+  let catalog = @sqlite.read_catalog("eval/filter-dev/tools.db")
+  let controls = [
+    "List prices for tools other than planes.", "List prices for tools that aren't planes.",
+    "返回除刨子以外工具的价格。", "Give prices for either saws or chisels.",
+    "Give prices for one of these categories: saw, chisel.", "列出锯子或凿子的价格。",
+    "Show prices where the label contains Copper.", "Show prices for labels starting with Copper.",
+    "Give prices for labels that end with Finch.", "返回标签以 Copper 开头的工具价格。",
+    "找出标签包含 Copper 的工具价格。",
+  ]
+  for question in controls {
+    let (effective, review) = @planner.review_text_filter(
+      catalog,
+      question,
+      tool_prices,
+      _ => fail("unexpected equality review for " + question),
+    )
+    assert_eq(effective, tool_prices)
+    assert_eq(review, None)
+  }
+}
+
+///|
+async test "text filter review binds a grounded value and preserves unconfirmed plans" {
+  let db = "eval/filter-dev/tools.db"
+  let catalog = @sqlite.read_catalog(db)
+  let reply =
+    #|{"equals":["category","chisel"]}
+  let question = "List the prices of the chisels."
+  let answer = @planner.ask(
+    db,
+    question,
+    (_, _) => tool_prices,
+    review_filter=Some(input => {
+      assert_true(input.contains("text_columns"))
+      reply
+    }),
+  )
+  guard answer is Queried(evidence) else { fail("expected executed plan") }
+  assert_eq(evidence.params, [Text("chisel")])
+  assert_eq(evidence.result.rows, [[Integer(12L)], [Integer(12L)]])
+  for
+    (q, proposal) in [
+      (question, "{\"equals\":null}"),
+      ("Show each tool label.", "{\"equals\":[\"label\",\"label\"]}"),
+      (question, "{\"equals\":[\"category\",\"plane\"]}"),
+      (question, "{\"equals\":[\"category\",\"his\"]}"),
+      (question, "{\"equals\":[\"price\",\"chisel\"]}"),
+      (question, "{\"equals\":[\"category\",\"chisel\"],\"else\":true}"),
+      ("Give prices for 'Copper Finch'.", "{\"equals\":[\"label\",\"Copper\"]}"),
+    ] {
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      q,
+      tool_prices,
+      _ => proposal,
+    )
+    assert_eq(effective, tool_prices)
+    assert_eq(raw, Some(proposal))
+  }
+}
+
+///|
+async test "review skips filtered, grouped, joined, invalid and refused first replies" {
+  let catalog = @sqlite.read_catalog("eval/filter-dev/tools.db")
+  let filtered = tool_prices.replace_all(
+    old="\"filters\":[]",
+    new="\"filters\":[[\"IsNull\",{\"table\":\"tools\",\"column\":\"maker\"}]]",
+  )
+  let grouped = tool_prices.replace_all(
+    old="\"group_by\":[]",
+    new="\"group_by\":[{\"table\":\"tools\",\"column\":\"price\"}]",
+  )
+  let joined = tool_prices.replace_all(
+    old="\"joins\":[]",
+    new="\"joins\":[{\"via\":\"tools\",\"table\":\"vendors\"}]",
+  )
+  let invalid = tool_prices.replace_all(
+    old="\"column\":\"price\"",
+    new="\"column\":\"unknown\"",
+  )
+  for
+    first in [
+      filtered, grouped, joined, invalid, "{\"no_answer\":\"missing facts\"}",
+    ] {
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      "List prices for planes.",
+      first,
+      _ => fail("unexpected review"),
+    )
+    assert_eq(effective, first)
+    assert_eq(raw, None)
+  }
+}

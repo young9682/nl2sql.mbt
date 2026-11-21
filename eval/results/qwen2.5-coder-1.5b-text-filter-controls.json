@@ -1,0 +1,176 @@
+{
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/filter-dev/tools.db",
+  "cases": [
+    {
+      "id": "negation",
+      "question": "List prices for tools other than planes.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "90"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"category\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"tools\",\"column\":\"category\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"price\" FROM \"tools\" WHERE \"tools\".\"category\" IS NULL",
+        "params": [],
+        "rows": [],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"NotEqual\",{\"table\":\"tools\",\"column\":\"category\"},\"Plane\"]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"category\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE category != 'Planes'\"}",
+        "sql": "SELECT price FROM tools WHERE category != 'Planes'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "36"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "90"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "48"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "alternative",
+      "question": "Give prices for either saws or chisels.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "90"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"tools\",\"column\":\"category\"},\"Equal\",[\"Text\",\"saws\"]],[\"Compare\",{\"table\":\"tools\",\"column\":\"category\"},\"Equal\",[\"Text\",\"chisels\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"price\" FROM \"tools\" WHERE \"tools\".\"category\" = ? AND \"tools\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "saws"
+          ],
+          [
+            "Text",
+            "chisels"
+          ]
+        ],
+        "rows": [],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Or\",[\"Compare\",{\"table\":\"tools\",\"column\":\"category\"},\"Equal\",[\"Text\",\"saws\"]],[\"Compare\",{\"table\":\"tools\",\"column\":\"category\"},\"Equal\",[\"Text\",\"chisels\"]]]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE category = 'saws' OR category = 'chisels'\"}",
+        "sql": "SELECT price FROM tools WHERE category = 'saws' OR category = 'chisels'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "substring",
+      "question": "Show prices where the label contains Copper.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "InvalidReply(\"plan does not match the requested structure\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"tools\",\"column\":\"label\"},\"Contains\",[\"Text\",\"Copper\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Contains\",{\"table\":\"tools\",\"column\":\"label\"},\"Copper\"]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE label LIKE '%Copper%'\"}",
+        "sql": "SELECT price FROM tools WHERE label LIKE '%Copper%'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

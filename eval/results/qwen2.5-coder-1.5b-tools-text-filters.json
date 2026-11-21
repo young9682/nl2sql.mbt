@@ -1,0 +1,757 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/filter-dev/tools.db",
+  "questions": "eval/filter-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 8,
+      "total": 11,
+      "rate": 0.7272727272727273
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 11,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 11,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 9,
+      "total": 11,
+      "rate": 0.8181818181818182
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 11,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 11,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "named-day",
+      "question": "When was Copper Finch listed?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-01"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"listed_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"listed_on\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"tools\",\"column\":\"listed_on\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"listed_on\" FROM \"tools\" WHERE \"tools\".\"listed_on\" IS NULL",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"listed_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT listed_on FROM tools WHERE label = 'Copper Finch'\"}",
+        "sql": "SELECT listed_on FROM tools WHERE label = 'Copper Finch'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-01"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "named-price",
+      "question": "Give the price of the tool labeled Red Notch.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"tools\",\"column\":\"label\"},\"Equal\",[\"Text\",\"Red Notch\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"price\" FROM \"tools\" WHERE \"tools\".\"label\" = ?",
+        "params": [
+          [
+            "Text",
+            "Red Notch"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE label = 'Red Notch'\"}",
+        "sql": "SELECT price FROM tools WHERE label = 'Red Notch'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "category-max",
+      "question": "What is the highest price among planes?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "48"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Max\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT MAX(\"tools\".\"price\") FROM \"tools\" WHERE \"tools\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "plane"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "48"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"category\",\"plane\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT MAX(price) FROM tools\"}",
+        "sql": "SELECT MAX(price) FROM tools",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "90"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "category-values",
+      "question": "List the prices of the chisels, including repeated prices.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "12"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"price\" FROM \"tools\" WHERE \"tools\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "chisel"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "12"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"category\",\"chisel\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE category = 'chisels'\"}",
+        "sql": "SELECT price FROM tools WHERE category = 'chisels'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "maker-labels",
+      "question": "Which tool labels are made by Cog Union?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Red Notch"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Ash Wing"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"maker\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"tools\",\"column\":\"maker\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"label\" FROM \"tools\" WHERE \"tools\".\"maker\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"maker\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT label FROM tools WHERE maker = 'Cog Union'\"}",
+        "sql": "SELECT label FROM tools WHERE maker = 'Cog Union'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Red Notch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Ash Wing"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "maker-since",
+      "question": "List labels from Elm Works listed on or after March 1, 2025.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Copper Finch"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Blue Loop"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"tools\",\"column\":\"listed_on\"},\"GreaterEqual\",[\"Text\",\"2025-03-01\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"label\" FROM \"tools\" WHERE \"tools\".\"listed_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "2025-03-01"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Copper Finch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Blue Loop"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Red Notch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT label FROM tools WHERE maker = 'Elm Works' AND listed_on >= '2025-03-01'\"}",
+        "sql": "SELECT label FROM tools WHERE maker = 'Elm Works' AND listed_on >= '2025-03-01'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Copper Finch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Blue Loop"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-label",
+      "question": "What is the price of the tool named Gray Knot?",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"tools\",\"column\":\"label\"},\"Equal\",[\"Text\",\"Gray Knot\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"price\" FROM \"tools\" WHERE \"tools\".\"label\" = ?",
+        "params": [
+          [
+            "Text",
+            "Gray Knot"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"price\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT price FROM tools WHERE label = 'Gray Knot'\"}",
+        "sql": "SELECT price FROM tools WHERE label = 'Gray Knot'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-labels",
+      "question": "List every tool label.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Copper Finch"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Blue Loop"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Red Notch"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Ash Wing"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Quiet Pine"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"label\" FROM \"tools\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Ash Wing"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Blue Loop"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Copper Finch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Red Notch"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"label\"]}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT label FROM tools\"}",
+        "sql": "SELECT DISTINCT label FROM tools",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Ash Wing"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Blue Loop"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Copper Finch"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Red Notch"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "global-max",
+      "question": "What is the highest price across all tools?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "90"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Max\",{\"table\":\"tools\",\"column\":\"price\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT MAX(\"tools\".\"price\") FROM \"tools\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "90"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT MAX(price) FROM tools\"}",
+        "sql": "SELECT MAX(price) FROM tools",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "90"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "per-category",
+      "question": "Return each category and the count of tools in it.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "plane"
+          ],
+          [
+            "Integer",
+            "2"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "chisel"
+          ],
+          [
+            "Integer",
+            "2"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "saw"
+          ],
+          [
+            "Integer",
+            "1"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"category\"}],[\"CountAll\",{\"table\":\"tools\",\"column\":\"category\"}]],\"joins\":[],\"filters\":[],\"group_by\":[{\"table\":\"tools\",\"column\":\"category\"}],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"category\", COUNT(*) FROM \"tools\" GROUP BY \"tools\".\"category\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "chisel"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "plane"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "saw"
+            ],
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT category ,  COUNT(*) FROM tools GROUP BY category\"}",
+        "sql": "SELECT category ,  COUNT(*) FROM tools GROUP BY category",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "chisel"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "plane"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "saw"
+            ],
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "null-maker",
+      "question": "List labels of tools with no recorded maker.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Quiet Pine"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"maker\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"tools\",\"select\":[[\"Column\",{\"table\":\"tools\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"tools\",\"column\":\"maker\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"tools\".\"label\" FROM \"tools\" WHERE \"tools\".\"maker\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"tools\\\",\\\"maker\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT label FROM tools WHERE maker IS NULL\"}",
+        "sql": "SELECT label FROM tools WHERE maker IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Quiet Pine"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

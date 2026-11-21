@@ -1,0 +1,90 @@
+[
+  {
+    "id": "named-day",
+    "question": "When was Copper Finch listed?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-01"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "listed_on"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "label"}, "Equal", ["Text", "Copper Finch"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT listed_on FROM tools WHERE label='Copper Finch'"}
+  },
+  {
+    "id": "named-price",
+    "question": "Give the price of the tool labeled Red Notch.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "12"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "price"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "label"}, "Equal", ["Text", "Red Notch"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT price FROM tools WHERE label='Red Notch'"}
+  },
+  {
+    "id": "category-max",
+    "question": "What is the highest price among planes?",
+    "ordered": false,
+    "expected_rows": [[["Integer", "48"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Max", {"table": "tools", "column": "price"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "category"}, "Equal", ["Text", "plane"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT MAX(price) FROM tools WHERE category='plane'"}
+  },
+  {
+    "id": "category-values",
+    "question": "List the prices of the chisels, including repeated prices.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "12"]], [["Integer", "12"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "price"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "category"}, "Equal", ["Text", "chisel"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT price FROM tools WHERE category='chisel'"}
+  },
+  {
+    "id": "maker-labels",
+    "question": "Which tool labels are made by Cog Union?",
+    "ordered": false,
+    "expected_rows": [[["Text", "Red Notch"]], [["Text", "Ash Wing"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "label"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "maker"}, "Equal", ["Text", "Cog Union"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM tools WHERE maker='Cog Union'"}
+  },
+  {
+    "id": "maker-since",
+    "question": "List labels from Elm Works listed on or after March 1, 2025.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Copper Finch"]], [["Text", "Blue Loop"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "label"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "maker"}, "Equal", ["Text", "Elm Works"]], ["Compare", {"table": "tools", "column": "listed_on"}, "GreaterEqual", ["Text", "2025-03-01"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM tools WHERE maker='Elm Works' AND listed_on >= '2025-03-01'"}
+  },
+  {
+    "id": "missing-label",
+    "question": "What is the price of the tool named Gray Knot?",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "price"}]], "joins": [], "filters": [["Compare", {"table": "tools", "column": "label"}, "Equal", ["Text", "Gray Knot"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT price FROM tools WHERE label='Gray Knot'"}
+  },
+  {
+    "id": "all-labels",
+    "question": "List every tool label.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Copper Finch"]], [["Text", "Blue Loop"]], [["Text", "Red Notch"]], [["Text", "Ash Wing"]], [["Text", "Quiet Pine"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "label"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM tools"}
+  },
+  {
+    "id": "global-max",
+    "question": "What is the highest price across all tools?",
+    "ordered": false,
+    "expected_rows": [[["Integer", "90"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Max", {"table": "tools", "column": "price"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT MAX(price) FROM tools"}
+  },
+  {
+    "id": "per-category",
+    "question": "Return each category and the count of tools in it.",
+    "ordered": false,
+    "expected_rows": [[["Text", "plane"], ["Integer", "2"]], [["Text", "chisel"], ["Integer", "2"]], [["Text", "saw"], ["Integer", "1"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "category"}], "CountAll"], "joins": [], "filters": [], "group_by": [{"table": "tools", "column": "category"}], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT category,COUNT(*) FROM tools GROUP BY category"}
+  },
+  {
+    "id": "null-maker",
+    "question": "List labels of tools with no recorded maker.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Quiet Pine"]]],
+    "fixture_plan": {"plan": {"from_table": "tools", "select": [["Column", {"table": "tools", "column": "label"}]], "joins": [], "filters": [["IsNull", {"table": "tools", "column": "maker"}]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM tools WHERE maker IS NULL"}
+  }
+]

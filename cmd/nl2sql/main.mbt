@@ -78,6 +78,9 @@ async fn run(args : ArrayView[String]) -> Json {
           max_rows~,
           retry_invalid=true,
           assess=Some(assess),
+          review_filter=Some(
+            @planner.openai_text_filter_model(endpoint, model, api_key=key),
+          ),
         ),
       )
     }

@@ -24,7 +24,8 @@ pub suberror PlannerError {
 /// Loads the catalog from the database, requests a structured plan, and runs the
 /// compiled query through the native read-only executor. An optional
 /// answerability model can decline before the planner is called. Set retry_invalid
-/// to retry a rejected plan once before execution.
+/// to retry a rejected plan once before execution. An optional review_filter
+/// checks eligible unfiltered first plans for one missing text equality.
 pub async fn ask(
   path : String,
   question : String,
@@ -32,6 +33,7 @@ pub async fn ask(
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
   retry_invalid~ : Bool = false,
+  review_filter~ : (async (String) -> String)? = None,
   assess~ : (async (@lib.Catalog, String) -> String)? = None,
 ) -> Answer {
   let catalog = @sqlite.read_catalog(path, timeout_ms~)
@@ -53,7 +55,13 @@ pub async fn ask(
       resolve_join_path=true,
     )
   } else {
-    execute_reply(path, catalog, reply, max_rows~, timeout_ms~)
+    let effective = if review_filter is Some(review) {
+      let (plan, _) = review_text_filter(catalog, question, reply, review)
+      plan
+    } else {
+      reply
+    }
+    execute_reply(path, catalog, effective, max_rows~, timeout_ms~)
   }
 }
 

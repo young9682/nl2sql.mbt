@@ -1,0 +1,1139 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/holdout/museum.db",
+  "questions": "eval/holdout/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 8,
+      "total": 12,
+      "rate": 0.6666666666666666
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 20,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 8,
+      "total": 8,
+      "rate": 1
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 12,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 6,
+      "total": 12,
+      "rate": 0.5
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 20,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 8,
+      "total": 8,
+      "rate": 1
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 12,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "insured-value-by-title",
+      "question": "What is the insured value recorded for Night Market?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "34000"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"insured_value\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"artworks\",\"column\":\"title\"},\"Equal\",[\"Text\",\"Night Market\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"artworks\".\"insured_value\" FROM \"artworks\" WHERE \"artworks\".\"title\" = ?",
+        "params": [
+          [
+            "Text",
+            "Night Market"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.insured_value FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'Night Market'\"}",
+        "sql": "SELECT T1.insured_value FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'Night Market'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-acquisition-price",
+      "question": "What was the amount paid when the museum acquired Night Market?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The price or cost of the artwork is missing.",
+        "answerability_reply": "{\"no_answer\":\"The price or cost of the artwork is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The price or cost of the artwork is missing.",
+        "answerability_reply": "{\"no_answer\":\"The price or cost of the artwork is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "ground-floor-galleries",
+      "question": "列出位于 1 层的展厅名称。",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Cedar Hall"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Paper Studio"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"galleries\\\",\\\"name\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"galleries\",\"select\":[[\"Column\",{\"table\":\"galleries\",\"column\":\"name\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"galleries\",\"column\":\"floor\"},\"Equal\",[\"Integer\",\"1\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"galleries\".\"name\" FROM \"galleries\" WHERE \"galleries\".\"floor\" = ?",
+        "params": [
+          [
+            "Integer",
+            "1"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Cedar Hall"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Paper Studio"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"galleries\",\"select\":[[\"Column\",{\"table\":\"galleries\",\"column\":\"name\"}]],\"joins\":[{\"table\":\"exhibitions\",\"via\":\"galleries\"},{\"table\":\"artworks\",\"via\":\"exhibitions\"}],\"filters\":[[\"Compare\",{\"table\":\"galleries\",\"column\":\"floor\"},\"Equal\",[\"Integer\",\"1\"]]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"galleries\\\",\\\"name\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.floor = 1\"}",
+        "sql": "SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.floor = 1",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Tide Marker"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Folding Map"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Glass Orchard"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "River Loom"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Blue Index"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Amber Frame"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "exhibition-opening",
+      "question": "On what date did Ink Routes open?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2024-05-08"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"exhibitions\\\",\\\"opens_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"exhibitions\",\"select\":[[\"Column\",{\"table\":\"exhibitions\",\"column\":\"opens_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"exhibitions\".\"opens_on\" FROM \"exhibitions\" WHERE \"exhibitions\".\"opens_on\" = ?",
+        "params": [
+          [
+            "Text",
+            "Ink Routes"
+          ]
+        ],
+        "rows": [],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"opens_on\",\"Ink Routes\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"exhibitions\\\",\\\"opens_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.opens_on FROM exhibitions AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'Ink Routes'\"}",
+        "sql": "SELECT T1.opens_on FROM exhibitions AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'Ink Routes'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-visitor-count",
+      "question": "How many people visited Ink Routes while it was open?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The information about the exhibitions is missing.",
+        "answerability_reply": "{\"no_answer\":\"The information about the exhibitions is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The information about the exhibitions is missing.",
+        "answerability_reply": "{\"no_answer\":\"The information about the exhibitions is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "works-after-year",
+      "question": "List artwork titles acquired in 2022 or later, ordered by title from A to Z.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Blue Index"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Glass Orchard"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "River Loom"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"acquired_year\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"title\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"artworks\",\"column\":\"acquired_year\"},\"GreaterEqual\",[\"Integer\",\"2022\"]]],\"group_by\":[],\"order_by\":[{\"position\":1,\"descending\":false}]}}",
+        "sql": "SELECT \"artworks\".\"title\" FROM \"artworks\" WHERE \"artworks\".\"acquired_year\" >= ? ORDER BY 1 ASC",
+        "params": [
+          [
+            "Integer",
+            "2022"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Blue Index"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Glass Orchard"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "River Loom"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\n  \"plan\": {\n    \"from_table\": \"artworks\",\n    \"select\": [\n      [\"Column\", {\"table\": \"artworks\", \"column\": \"title\"}]\n    ],\n    \"joins\": [\n      {\n        \"table\": \"exhibitions\",\n        \"via\": \"gallery_id\"\n      },\n      {\n        \"table\": \"galleries\",\n        \"via\": \"id\"\n      }\n    ],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"exhibitions\", \"column\": \"opens_on\"}, \"GreaterEqual\", [\"Text\", \"2022-01-01\"]],\n      [\"Compare\", {\"table\": \"exhibitions\", \"column\": \"closes_on\"}, \"LessEqual\", [\"Text\", \"2022-12-31\"]]\n    ],\n    \"group_by\": [\n      [\"Column\", {\"table\": \"artworks\", \"column\": \"title\"}]\n    ],\n    \"order_by\": [\n      [\"position\", \"ascending\"]\n    ]\n  }\n}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"acquired_year\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T1.acquired_year >= 2022 ORDER BY T1.title ASC\"}",
+        "sql": "SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T1.acquired_year >= 2022 ORDER BY T1.title ASC",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Blue Index"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Glass Orchard"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "River Loom"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "highest-print-cover",
+      "question": "Among prints, what is the largest recorded insured value?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "7600"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Max\",{\"table\":\"artworks\",\"column\":\"insured_value\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT MAX(\"artworks\".\"insured_value\") FROM \"artworks\" WHERE \"artworks\".\"medium\" = ?",
+        "params": [
+          [
+            "Text",
+            "print"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "7600"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"medium\",\"print\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT MAX(insured_value) FROM artworks\"}",
+        "sql": "SELECT MAX(insured_value) FROM artworks",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-due-date",
+      "question": "Which loans were returned after their contractual due date?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for loans.due_date.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"due_date\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for loans.due_date.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"due_date\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "coverage-by-medium",
+      "question": "For each medium represented in the collection, show its name and the sum of insured values for its artworks.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "painting"
+          ],
+          [
+            "Integer",
+            "68000"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "photograph"
+          ],
+          [
+            "Integer",
+            "6800"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "print"
+          ],
+          [
+            "Integer",
+            "12800"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "sculpture"
+          ],
+          [
+            "Integer",
+            "30000"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "textile"
+          ],
+          [
+            "Integer",
+            "9600"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"medium\"}],[\"Sum\",{\"table\":\"artworks\",\"column\":\"insured_value\"}]],\"joins\":[],\"filters\":[],\"group_by\":[{\"table\":\"artworks\",\"column\":\"medium\"}],\"order_by\":[]}}",
+        "sql": "SELECT \"artworks\".\"medium\", SUM(\"artworks\".\"insured_value\") FROM \"artworks\" GROUP BY \"artworks\".\"medium\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "painting"
+            ],
+            [
+              "Integer",
+              "68000"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "photograph"
+            ],
+            [
+              "Integer",
+              "6800"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "print"
+            ],
+            [
+              "Integer",
+              "12800"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "sculpture"
+            ],
+            [
+              "Integer",
+              "30000"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "textile"
+            ],
+            [
+              "Integer",
+              "9600"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\n  \"plan\": {\n    \"from_table\": \"artworks\",\n    \"select\": [\n      [\"Column\", {\"table\": \"artworks\", \"column\": \"medium\"}],\n      [\"Sum\", {\"table\": \"artworks\", \"column\": \"insured_value\"}]\n    ],\n    \"joins\": [\n      {\n        \"table\": \"galleries\",\n        \"via\": \"artworks\"\n      }\n    ],\n    \"filters\": [],\n    \"group_by\": [\n      [\"Column\", {\"table\": \"artworks\", \"column\": \"medium\"}]\n    ],\n    \"order_by\": [],\n    \"limit\": null\n  }\n}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.medium, SUM(T1.insured_value) FROM artworks AS T1 JOIN galleries AS T2 ON T1.gallery_id = T2.id GROUP BY T1.medium\"}",
+        "sql": "SELECT T1.medium, SUM(T1.insured_value) FROM artworks AS T1 JOIN galleries AS T2 ON T1.gallery_id = T2.id GROUP BY T1.medium",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "painting"
+            ],
+            [
+              "Integer",
+              "68000"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "photograph"
+            ],
+            [
+              "Integer",
+              "6800"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "print"
+            ],
+            [
+              "Integer",
+              "12800"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "sculpture"
+            ],
+            [
+              "Integer",
+              "30000"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "textile"
+            ],
+            [
+              "Integer",
+              "9600"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "uncredited-artwork-titles",
+      "question": "列出艺术家字段为 NULL 的藏品标题。",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Folding Map"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Rain Ledger"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"artist\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"title\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"artworks\",\"column\":\"artist\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"artworks\".\"title\" FROM \"artworks\" WHERE \"artworks\".\"artist\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Folding Map"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Rain Ledger"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"artist\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T1.artist IS NULL\"}",
+        "sql": "SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T1.artist IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Folding Map"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Rain Ledger"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-artist-birth-country",
+      "question": "按艺术家的出生国家统计藏品数量。",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for artworks.country.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"country\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for artworks.country.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"country\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "north-annex-empty",
+      "question": "Show titles of artworks assigned to North Annex.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"gallery_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"title\"}]],\"joins\":[{\"via\":\"artworks\",\"table\":\"loans\"},{\"via\":\"loans\",\"table\":\"galleries\"},{\"via\":\"galleries\",\"table\":\"exhibitions\"}],\"filters\":[[\"Compare\",{\"table\":\"galleries\",\"column\":\"name\"},\"Equal\",[\"Text\",\"North Annex\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"artworks\".\"title\" FROM \"artworks\" JOIN \"galleries\" ON \"galleries\".\"id\" = +\"artworks\".\"gallery_id\" WHERE \"galleries\".\"name\" = ?",
+        "params": [
+          [
+            "Text",
+            "North Annex"
+          ]
+        ],
+        "rows": [],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"exhibitions\",\"via\":\"artworks\"},{\"table\":\"galleries\",\"via\":\"exhibitions\"}],\"filters\":[[\"IsNull\",{\"table\":\"galleries\",\"column\":\"name\"}]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"gallery_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'North Annex'\"}",
+        "sql": "SELECT T1.title FROM artworks AS T1 INNER JOIN galleries AS T2 ON T1.gallery_id = T2.id WHERE T2.name = 'North Annex'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "loaned-work-titles",
+      "question": "Show the artwork titles for loans requested by Hill Library.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Night Market"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "River Loom"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"artwork_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"loans\",\"select\":[[\"Column\",{\"table\":\"loans\",\"column\":\"artwork_id\"}],[\"Column\",{\"table\":\"artworks\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"artworks\",\"via\":\"loans\"}],\"filters\":[[\"IsNull\",{\"table\":\"loans\",\"column\":\"borrower\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"loans\".\"artwork_id\", \"artworks\".\"title\" FROM \"loans\" JOIN \"artworks\" ON \"artworks\".\"id\" = +\"loans\".\"artwork_id\" WHERE \"loans\".\"borrower\" IS NULL",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"artwork_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM artworks AS T1 INNER JOIN loans AS T2 ON T1.id = T2.artwork_id WHERE T2.borrower = 'Hill Library'\"}",
+        "sql": "SELECT T1.title FROM artworks AS T1 INNER JOIN loans AS T2 ON T1.id = T2.artwork_id WHERE T2.borrower = 'Hill Library'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Night Market"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "River Loom"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-transport-date",
+      "question": "Which day did Glass Orchard leave the museum on loan?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The loan information is missing.",
+        "answerability_reply": "{\"no_answer\":\"The loan information is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The loan information is missing.",
+        "answerability_reply": "{\"no_answer\":\"The loan information is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "pending-return-count",
+      "question": "有多少笔外借记录的归还日期尚未填写？",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "2"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"returned_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"loans\",\"select\":[[\"CountAll\"]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"loans\",\"column\":\"returned_on\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT COUNT(*) FROM \"loans\" WHERE \"loans\".\"returned_on\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "2"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"returned_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT COUNT(*) FROM loans WHERE returned_on IS NULL\"}",
+        "sql": "SELECT COUNT(*) FROM loans WHERE returned_on IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "2"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-guard-assignments",
+      "question": "Which galleries currently have an after-hours security guard assigned?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The information about after-hours security guards is not available in the given tables.",
+        "answerability_reply": "{\"no_answer\":\"The information about after-hours security guards is not available in the given tables.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The information about after-hours security guards is not available in the given tables.",
+        "answerability_reply": "{\"no_answer\":\"The information about after-hours security guards is not available in the given tables.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "painting-values-with-duplicates",
+      "question": "List the insured values of the paintings, one entry per artwork.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "34000"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "34000"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"artworks\",\"select\":[[\"Column\",{\"table\":\"artworks\",\"column\":\"insured_value\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"artworks\".\"insured_value\" FROM \"artworks\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "5200"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "18000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "9600"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "7600"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "6800"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"artworks\\\",\\\"insured_value\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT artworks.insured_value FROM artworks INNER JOIN galleries ON artworks.gallery_id = galleries.id\"}",
+        "sql": "SELECT artworks.insured_value FROM artworks INNER JOIN galleries ON artworks.gallery_id = galleries.id",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "12000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "5200"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "18000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "34000"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "9600"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "7600"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "6800"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-restoration-history",
+      "question": "请列出做过修复的藏品名称。",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "数据库中没有记录修复的藏品。",
+        "answerability_reply": "{\"no_answer\":\"数据库中没有记录修复的藏品。\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "数据库中没有记录修复的藏品。",
+        "answerability_reply": "{\"no_answer\":\"数据库中没有记录修复的藏品。\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "recent-harbor-requests",
+      "question": "List the request dates of loans for Harbor Museum from June 1, 2024 onward.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2024-07-25"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"requested_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"loans\",\"select\":[[\"Column\",{\"table\":\"loans\",\"column\":\"requested_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"loans\",\"column\":\"requested_on\"},\"Greater\",[\"Text\",\"2024-06-01\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"loans\".\"requested_on\" FROM \"loans\" WHERE \"loans\".\"requested_on\" > ?",
+        "params": [
+          [
+            "Text",
+            "2024-06-01"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-06-15"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-02-07"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-07-25"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"loans\\\",\\\"requested_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.requested_on FROM loans AS T1 INNER JOIN artworks AS T2 ON T1.artwork_id = T2.id WHERE T2.gallery_id IN (SELECT id FROM galleries WHERE name = 'Harbor Museum') AND T1.requested_on >= '2024-06-01' ORDER BY T1.requested_on\"}",
+        "sql": "SELECT T1.requested_on FROM loans AS T1 INNER JOIN artworks AS T2 ON T1.artwork_id = T2.id WHERE T2.gallery_id IN (SELECT id FROM galleries WHERE name = 'Harbor Museum') AND T1.requested_on >= '2024-06-01' ORDER BY T1.requested_on",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-audio-guide-languages",
+      "question": "Which exhibitions had an audio guide available in Spanish?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The medium of the artworks is missing.",
+        "answerability_reply": "{\"no_answer\":\"The medium of the artworks is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The medium of the artworks is missing.",
+        "answerability_reply": "{\"no_answer\":\"The medium of the artworks is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    }
+  ]
+}
