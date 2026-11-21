@@ -57,15 +57,14 @@ Run `moon test --target native` from the repository root to exercise the fixture
 
 ## Independent MoonBit integration
 
-The inventory report is a separate MoonBit module that imports `young9682/nl2sql/sqlite` to find low-stock products. Its tests cover typed results, write rejection, and reporting a truncated result as partial. Run the following commands from the repository root. [Dependency and workspace setup](examples/inventory-report/README.md)
+The inventory report is a separate MoonBit module that imports `young9682/nl2sql/sqlite` to find low-stock products. With the Native CLI prerequisites and Python 3 installed, run the same verification as CI from the repository root. [Native CLI prerequisites](#native-cli-demo)
 
 ```bash
-cd examples/inventory-report
-moon test --target native .
-moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1
+moon update
+python3 examples/inventory-report/verify.py
 ```
 
-The report returns `partial` with the `east` warehouse's `Tea` entry and an integer quantity of 5.
+On Windows, use `python` if that is your Python 3 command. The verifier builds the inventory module in a temporary workspace against the current `nl2sql` revision. Its three tests cover typed results, write rejection, and truncation. It runs the sample with model settings cleared, checks for `partial` with an integer quantity of 5 for `Tea` in `east`, and verifies that the SQLite copy stays byte-for-byte identical. [Module and workspace setup](examples/inventory-report/README.md)
 
 A public fork of the existing `mizchi/sqlc_gen_moonbit` project imports `young9682/nl2sql/planner` in its Native SQLite user-directory example. The original account workflow creates and updates users, deletes Bob, and writes the resulting database file. The audit returns only Alice Smith (ID 1) and verifies the file's SHA-256 is identical before and after the query. The Windows reproduction uses a fixed model reply and pins the `nl2sql` revision to `ab67b85`. [Fork source and reproduction steps](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/NL2SQL-AUDIT.md) · [Recorded JSON](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/audit-result.json)
 
@@ -184,7 +183,7 @@ M4 defines the Native acceptance scope and M5 covers the Node.js WASM extension.
 
 - **Deliverables** include a native CLI that accepts a database path and question, a README walkthrough from build to question to evidence, and an integration in a separate MoonBit project that imports the public library API for one of its own workflows. Each successful CLI answer includes the executed SQL, bound parameters, returned rows, and the schema used for planning. Distinguish empty results, truncated output, rejected queries, and execution failures.
 - **Acceptance for the CLI** requires a reviewer to reproduce the full workflow with the sample database and deterministic model responses without an API key. Native CI must build the CLI and run the library and CLI integration tests. The repository must include the live-model walkthrough, the M3 comparison report, and an explanation of the execution policy, platform choices, and third-party dependencies, with the work traceable through commits, issues, and PRs.
-- **Acceptance for the downstream integration** requires a clean checkout of the separate MoonBit project to build against a documented `nl2sql` version or revision and call the public API directly. Its tests or runnable example must show a successful read with typed results, rejection of a disallowed statement, and explicit handling of a query timeout or result truncation. Include a link to the integration and reproduction commands in this README.
+- **Acceptance for the downstream integration** requires a clean checkout of the separate MoonBit project to build against a documented `nl2sql` version or revision and call the public API directly. Its tests or runnable example must show a successful read with typed results, rejection of a disallowed statement, and explicit handling of a query timeout or result truncation. CI runs the isolated workspace check against the checked-out revision. [Integration and reproduction commands](#independent-moonbit-integration)
 
 ### M5 · WASM deployment (Node.js demo)
 

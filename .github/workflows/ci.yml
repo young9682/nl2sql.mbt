@@ -35,12 +35,7 @@ jobs:
           env -u NL2SQL_ENDPOINT -u NL2SQL_MODEL -u NL2SQL_API_KEY moon run --quiet cmd/nl2sql -- --demo \
             | python3 -c 'import json, sys; report = json.load(sys.stdin); assert report["status"] == "ok"; assert [row[1][1] for row in report["result"]["rows"]] == [50, 20]'
       - name: Verify the independent inventory report module
-        working-directory: examples/inventory-report
-        run: |
-          set -o pipefail
-          moon test --target native .
-          moon run --quiet --target native . -- ../../sqlite/fixtures/orders.db 20 1 \
-            | python3 -c 'import json, sys; report = json.load(sys.stdin); assert report["status"] == "partial"; assert report["inventory"]["rows"] == [[["Text", "east"], ["Text", "Tea"], ["Integer", "5"]]]'
+        run: python3 examples/inventory-report/verify.py
       - name: moon test (Wasm core)
         run: moon test --target wasm
       - uses: actions/setup-node@v4
