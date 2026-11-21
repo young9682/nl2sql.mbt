@@ -64,7 +64,15 @@ async fn run(args : ArrayView[String]) -> Json {
       let model = setting("NL2SQL_MODEL")
       let key = @env.get_env_var("NL2SQL_API_KEY").unwrap_or("")
       let generate = @planner.openai_model(endpoint, model, api_key=key)
-      render_answer(question, @planner.ask(path, question, generate, max_rows~))
+      let assess = @planner.openai_answerability_model(
+        endpoint,
+        model,
+        api_key=key,
+      )
+      render_answer(
+        question,
+        @planner.ask(path, question, generate, max_rows~, assess=Some(assess)),
+      )
     }
     _ => raise InvalidArguments(usage)
   }

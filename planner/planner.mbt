@@ -22,15 +22,21 @@ pub suberror PlannerError {
 
 ///|
 /// Loads the catalog from the database, requests a structured plan, and runs the
-/// compiled query through the native read-only executor.
+/// compiled query through the native read-only executor. An optional
+/// answerability model can decline before the planner is called.
 pub async fn ask(
   path : String,
   question : String,
   generate : async (String, String) -> String,
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
+  assess~ : (async (@lib.Catalog, String) -> String)? = None,
 ) -> Answer {
   let catalog = @sqlite.read_catalog(path, timeout_ms~)
+  if assess is Some(check) &&
+    parse_answerability(check(catalog, question)) is Some(reason) {
+    return NoAnswer(reason)
+  }
   let reply = generate(plan_prompt, model_input(catalog, question))
   execute_reply(path, catalog, reply, max_rows~, timeout_ms~)
 }

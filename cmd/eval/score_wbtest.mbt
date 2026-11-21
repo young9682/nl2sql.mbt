@@ -45,17 +45,55 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
   }
   let input = @planner.model_input(catalog, question.question)
   let reply = "This is not a JSON object."
-  let generate : async (String, String) -> String = (_, _) => reply
+  let support =
+    #|{"supported":true}
+  let live : LiveModel = {
+    assess: (_, _) => support,
+    generate: (_, _) => reply,
+  }
   let rejected = compare_case(
     question,
     catalog,
     input,
-    Some(generate),
+    Some(live),
     structured=true,
   )
   assert_true(rejected.status == InvalidOutput)
+  assert_eq(rejected.answerability_reply, Some(support))
   assert_eq(rejected.model_reply, Some(reply))
   let fixture = compare_case(question, catalog, input, None, structured=false)
   assert_true(fixture.status == CorrectRows)
   assert_eq(fixture.model_reply, None)
+}
+
+///|
+async test "both live paths keep the assessment and skip generation on a refusal" {
+  let catalog = @sqlite.read_catalog(database)
+  let question : Case = {
+    id: "missing-data",
+    question: "When did each user first log in?",
+    ordered: false,
+    expected_rows: None,
+    fixture_plan: Json::null(),
+    fixture_sql: Json::null(),
+  }
+  let input = @planner.model_input(catalog, question.question)
+  let refusal =
+    #|{"no_answer":"The database does not record logins."}
+  for structured in [true, false] {
+    let result = compare_case(
+      question,
+      catalog,
+      input,
+      Some({
+        assess: (_, _) => refusal,
+        generate: (_, _) => fail("unexpected generation after refusal"),
+      }),
+      structured~,
+    )
+    assert_true(result.status == CorrectAbstention)
+    assert_eq(result.answerability_reply, Some(refusal))
+    assert_eq(result.model_reply, None)
+    assert_eq(result.sql, None)
+  }
 }

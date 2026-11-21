@@ -28,6 +28,12 @@ struct Case {
 }
 
 ///|
+struct LiveModel {
+  assess : async (@lib.Catalog, String) -> String
+  generate : async (String, String) -> String
+}
+
+///|
 async fn main {
   let args = @env.args()
   let mode = match args {
@@ -49,8 +55,11 @@ async fn main {
     ""
   }
   let key = @env.get_env_var("NL2SQL_API_KEY").unwrap_or("")
-  let generate = if mode == "live" {
-    Some(@planner.openai_model(endpoint, name, api_key=key))
+  let live = if mode == "live" {
+    Some({
+      assess: @planner.openai_answerability_model(endpoint, name, api_key=key),
+      generate: @planner.openai_model(endpoint, name, api_key=key),
+    })
   } else {
     None
   }
@@ -74,14 +83,14 @@ async fn main {
       question,
       catalog,
       input,
-      generate,
+      live,
       structured=true,
     )
     let sql_result = compare_case(
       question,
       catalog,
       input,
-      generate,
+      live,
       structured=false,
     )
     planned.push(plan_result.status)
@@ -133,22 +142,36 @@ async fn compare_case(
   question : Case,
   catalog : @lib.Catalog,
   input : String,
-  generate : (async (String, String) -> String)?,
+  live : LiveModel?,
   structured~ : Bool,
 ) -> Observation {
-  let reply = match generate {
+  let mut answerability_reply = None
+  let reply = match live {
     None =>
       (if structured { question.fixture_plan } else { question.fixture_sql }).stringify()
-    Some(generate) => {
-      let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
-      generate(prompt, input) catch {
-        @planner.PlannerError::ProviderStatus(status) =>
-          return failure(ProviderFailure, "HTTP \{status}")
-        @planner.PlannerError::ProviderReply(reason) =>
-          return failure(ProviderFailure, reason)
-        _ => return failure(ProviderFailure, "model request failed")
+    Some(model) =>
+      try {
+        let assessment = (model.assess)(catalog, question.question)
+        answerability_reply = Some(assessment)
+        if @planner.parse_answerability(assessment) is Some(reason) {
+          return { ..grade_abstention(question, reason), answerability_reply, }
+        }
+        let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
+        (model.generate)(prompt, input)
+      } catch {
+        error => {
+          let observation = match error {
+            @planner.PlannerError::InvalidReply(reason) =>
+              failure(InvalidOutput, reason)
+            @planner.PlannerError::ProviderStatus(status) =>
+              failure(ProviderFailure, "HTTP \{status}")
+            @planner.PlannerError::ProviderReply(reason) =>
+              failure(ProviderFailure, reason)
+            _ => failure(ProviderFailure, "model request failed")
+          }
+          return { ..observation, answerability_reply, }
+        }
       }
-    }
   }
   let observation = observe(question, () => {
     if structured {
@@ -191,8 +214,8 @@ async fn compare_case(
       }
     }
   })
-  if generate is Some(_) {
-    { ..observation, model_reply: Some(reply), }
+  if live is Some(_) {
+    { ..observation, answerability_reply, model_reply: Some(reply), }
   } else {
     observation
   }

@@ -13,6 +13,8 @@ import {
 #derive(@json.FromJson)
 type Case
 
+type LiveModel
+
 type Observation
 
 #derive(Eq, @json.ToJson)
