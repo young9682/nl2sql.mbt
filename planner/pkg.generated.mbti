@@ -10,7 +10,7 @@ import {
 // Values
 pub async fn ask(String, String, async (String, String) -> String, max_rows? : Int32, timeout_ms? : Int32, retry_invalid? : Bool, assess? : (async (@nl2sql.Catalog, String) -> String)?) -> Answer
 
-pub fn execute_reply(String, @nl2sql.Catalog, String, max_rows? : Int32, timeout_ms? : Int32) -> Answer raise
+pub fn execute_reply(String, @nl2sql.Catalog, String, max_rows? : Int32, timeout_ms? : Int32, resolve_join_path? : Bool) -> Answer raise
 
 pub fn model_input(@nl2sql.Catalog, String) -> String
 

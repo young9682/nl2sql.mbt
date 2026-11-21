@@ -111,3 +111,60 @@ async test "both live paths keep the assessment and skip generation on a refusal
     assert_eq(result.sql, None)
   }
 }
+
+///|
+async test "repair direct and two-hop route failures against the radio row oracles" {
+  let path = "eval/route-dev/radio.db"
+  let catalog = @sqlite.read_catalog(path)
+  let questions : Array[Case] = @json.from_json(
+    @json.parse(@fs.read_file("eval/route-dev/questions.json").text()),
+  )
+  for question in questions {
+    let fixture = question.fixture_plan
+    let canonical = @planner.execute_reply(path, catalog, fixture.stringify())
+    guard canonical is Queried(expected) else { fail(question.id) }
+    guard fixture is { "plan": Object(fields), .. } else { fail(question.id) }
+    guard fields.get("joins") is Some(Array(steps)) else { fail(question.id) }
+    guard steps[0] is { "via": String(base), .. } &&
+      steps[steps.length() - 1] is { "table": String(target), .. } else {
+      fail(question.id)
+    }
+    // For a two-hop case omit the bridge. For a direct case detour through
+    // another known table that cannot connect these endpoints.
+    fields["joins"] = if steps.length() == 2 {
+      [{ "via": Json::string(base), "table": Json::string(target) }]
+    } else {
+      let detour = if base == "shows" && target == "studios" {
+        "episodes"
+      } else {
+        "bookings"
+      }
+      [
+        { "via": Json::string(base), "table": Json::string(detour) },
+        { "via": Json::string(detour), "table": Json::string(target) },
+      ]
+    }
+    let invalid = fixture.stringify()
+    let rejected = try {
+      ignore(@planner.execute_reply(path, catalog, invalid))
+      false
+    } catch {
+      @plan.PlanError::InvalidJoin(_, _) => true
+      error => raise error
+    }
+    assert_true(rejected)
+    let fixed = @planner.execute_reply(
+      path,
+      catalog,
+      invalid,
+      resolve_join_path=true,
+    )
+    guard fixed is Queried(actual) else { fail(question.id) }
+    assert_eq(actual.sql, expected.sql)
+    assert_eq(actual.params, expected.params)
+    assert_true(
+      grade_rows(question, actual.sql, actual.params, actual.result).status ==
+      CorrectRows,
+    )
+  }
+}

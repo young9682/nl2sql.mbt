@@ -201,6 +201,7 @@ async fn compare_case(
           db_path,
           catalog,
           reply,
+          resolve_join_path=rejected_plan_reply is Some(_),
           max_rows=MAX_ROWS,
           timeout_ms=TIMEOUT_MS,
         ) {

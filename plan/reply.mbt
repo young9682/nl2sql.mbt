@@ -12,9 +12,12 @@ pub suberror ReplyError {
 
 ///|
 /// Decodes a structured model reply and checks any plan against the catalog.
+/// With resolve_join_path enabled, a rejected plain projection referencing two
+/// tables may use a unique shortest declared path of at most two foreign keys.
 pub fn compile_reply(
   catalog : @lib.Catalog,
   reply : String,
+  resolve_join_path~ : Bool = false,
 ) -> CompiledReply raise {
   let json = @json.parse(
     reply,
@@ -32,7 +35,16 @@ pub fn compile_reply(
       let plan : Plan = @json.from_json(value) catch {
         _ => raise InvalidReply("plan does not match the requested structure")
       }
-      Query(compile(catalog, plan))
+      let query = compile(catalog, plan) catch {
+        InvalidJoin(_, _) as error if resolve_join_path => {
+          guard replacement_path(catalog, plan) is Some(joins) else {
+            raise error
+          }
+          compile(catalog, { ..plan, joins, })
+        }
+        error => raise error
+      }
+      Query(query)
     }
     (None, Some(String(reason))) if !reason.trim().is_empty() =>
       NoAnswer(reason)

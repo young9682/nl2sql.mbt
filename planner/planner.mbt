@@ -41,13 +41,20 @@ pub async fn ask(
     return NoAnswer(reason)
   }
   let reply = generate(plan_prompt, model_input(catalog, question))
-  let final_reply = if retry_invalid &&
+  if retry_invalid &&
     plan_retry_request(catalog, question, reply) is Some((system, input)) {
-    generate(system, input)
+    let replacement = generate(system, input)
+    execute_reply(
+      path,
+      catalog,
+      replacement,
+      max_rows~,
+      timeout_ms~,
+      resolve_join_path=true,
+    )
   } else {
-    reply
+    execute_reply(path, catalog, reply, max_rows~, timeout_ms~)
   }
-  execute_reply(path, catalog, final_reply, max_rows~, timeout_ms~)
 }
 
 ///|
@@ -101,8 +108,9 @@ pub fn execute_reply(
   reply : String,
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
+  resolve_join_path~ : Bool = false,
 ) -> Answer raise {
-  let compiled = @plan.compile_reply(catalog, reply) catch {
+  let compiled = @plan.compile_reply(catalog, reply, resolve_join_path~) catch {
     @plan.ReplyError::InvalidReply(reason) => raise InvalidReply(reason)
     error => raise error
   }

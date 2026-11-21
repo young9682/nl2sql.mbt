@@ -10,7 +10,7 @@ import {
 // Values
 pub fn compile(@nl2sql.Catalog, Plan) -> CompiledQuery raise PlanError
 
-pub fn compile_reply(@nl2sql.Catalog, String) -> CompiledReply raise
+pub fn compile_reply(@nl2sql.Catalog, String, resolve_join_path? : Bool) -> CompiledReply raise
 
 // Errors
 #derive(@debug.Debug)
