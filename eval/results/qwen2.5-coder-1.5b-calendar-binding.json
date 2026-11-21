@@ -1,0 +1,538 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/binding-dev/calendar.db",
+  "questions": "eval/binding-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 6,
+      "total": 10,
+      "rate": 0.6
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 10,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 2,
+      "total": 10,
+      "rate": 0.2
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 1,
+      "total": 10,
+      "rate": 0.1
+    },
+    "invalid_output_rate": {
+      "count": 2,
+      "total": 10,
+      "rate": 0.2
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 2,
+      "total": 10,
+      "rate": 0.2
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "release-publication",
+      "question": "When was Saffron Kite published?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-02-14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"releases\",\"select\":[[\"Column\",{\"table\":\"releases\",\"column\":\"published_on\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"releases\",\"column\":\"archived_on\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"releases\".\"published_on\" FROM \"releases\" WHERE \"releases\".\"archived_on\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-04-20"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-19"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T2.published_on\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.published_on FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.released_on WHERE T1.label = 'Saffron Kite'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "release-archive",
+      "question": "On which date was June Parade archived?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-07-03"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "June Parade is not listed in the meetups table.",
+        "answerability_reply": "{\"no_answer\":\"June Parade is not listed in the meetups table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "June Parade is not listed in the meetups table.",
+        "answerability_reply": "{\"no_answer\":\"June Parade is not listed in the meetups table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "absent-release",
+      "question": "What is the publication date of Ivory Harbor?",
+      "expected_rows": [],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "Ivory Harbor is not a label or a release. It is a meetup name.",
+        "answerability_reply": "{\"no_answer\":\"Ivory Harbor is not a label or a release. It is a meetup name.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "Ivory Harbor is not a label or a release. It is a meetup name.",
+        "answerability_reply": "{\"no_answer\":\"Ivory Harbor is not a label or a release. It is a meetup name.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "date-shaped-label",
+      "question": "When was the release labeled \"2025-02-14\" published?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-19"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"releases\",\"select\":[[\"Column\",{\"table\":\"releases\",\"column\":\"published_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"releases\",\"column\":\"label\"},\"Equal\",[\"Text\",\"2025-02-14\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"releases\".\"published_on\" FROM \"releases\" WHERE \"releases\".\"label\" = ?",
+        "params": [
+          [
+            "Text",
+            "2025-02-14"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-19"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.label = '2025-02-14'\"}",
+        "sql": "SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.label = '2025-02-14'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "published-on",
+      "question": "Give the release labels published on 2025-02-14.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Saffron Kite"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "June Parade"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"releases\",\"select\":[[\"Column\",{\"table\":\"releases\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"releases\",\"column\":\"published_on\"},\"Equal\",[\"Text\",\"2025-02-14\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"releases\".\"label\" FROM \"releases\" WHERE \"releases\".\"published_on\" = ?",
+        "params": [
+          [
+            "Text",
+            "2025-02-14"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Saffron Kite"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "June Parade"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.label FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.id WHERE T2.held_on = '2025-02-14'\"}",
+        "sql": "SELECT DISTINCT T1.label FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.id WHERE T2.held_on = '2025-02-14'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "archived-on",
+      "question": "Give the release labels archived on 2025-04-20.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Saffron Kite"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"releases\",\"select\":[[\"Column\",{\"table\":\"releases\",\"column\":\"label\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"releases\",\"column\":\"published_on\"},\"Equal\",[\"Text\",\"2025-04-20\"]],[\"Compare\",{\"table\":\"releases\",\"column\":\"archived_on\"},\"Equal\",[\"Text\",\"2025-04-20\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"releases\".\"label\" FROM \"releases\" WHERE \"releases\".\"published_on\" = ? AND \"releases\".\"archived_on\" = ?",
+        "params": [
+          [
+            "Text",
+            "2025-04-20"
+          ],
+          [
+            "Text",
+            "2025-04-20"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"label\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.label FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.id WHERE T2.held_on = '2025-04-20' AND T1.archived_on = '2025-04-20'\"}",
+        "sql": "SELECT DISTINCT T1.label FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.id WHERE T2.held_on = '2025-04-20' AND T1.archived_on = '2025-04-20'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "date-to-date",
+      "question": "Give the publication dates of releases archived on 2025-04-20.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-02-14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"releases\",\"select\":[[\"Column\",{\"table\":\"releases\",\"column\":\"published_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"releases\",\"column\":\"archived_on\"},\"Equal\",[\"Text\",\"2025-04-20\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"releases\".\"published_on\" FROM \"releases\" WHERE \"releases\".\"archived_on\" = ?",
+        "params": [
+          [
+            "Text",
+            "2025-04-20"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-02-14"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T2.published_on\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"releases\\\",\\\"published_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.published_on FROM releases AS T1 INNER JOIN meetups AS T2 ON T1.id = T2.id WHERE T2.archived_on = '2025-04-20'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "event-name",
+      "question": "When was Cloud Circle held?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2024-06-09"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"meetups\\\",\\\"held_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"meetups\",\"select\":[[\"Column\",{\"table\":\"meetups\",\"column\":\"held_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[],\"limit\":null}}",
+        "sql": "SELECT \"meetups\".\"held_on\" FROM \"meetups\" WHERE \"meetups\".\"name\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cloud Circle"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-06-09"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"name\",\"Cloud Circle\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"meetups\\\",\\\"held_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.label = 'Cloud Circle' ORDER BY T2.published_on DESC LIMIT 1\"}",
+        "sql": "SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.label = 'Cloud Circle' ORDER BY T2.published_on DESC LIMIT 1",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "event-venue",
+      "question": "List the dates of meetups held at Union Yard.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2024-06-09"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2024-07-11"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"meetups\\\",\\\"held_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"meetups\",\"select\":[[\"Column\",{\"table\":\"meetups\",\"column\":\"held_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"meetups\".\"held_on\" FROM \"meetups\" WHERE \"meetups\".\"venue\" = ?",
+        "params": [
+          [
+            "Text",
+            "Union Yard"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-06-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-07-11"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"venue\",\"Union Yard\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"meetups\\\",\\\"held_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.archived_on IS NULL ORDER BY T1.held_on\"}",
+        "sql": "SELECT T1.held_on FROM meetups AS T1 INNER JOIN releases AS T2 ON T1.id = T2.id WHERE T2.archived_on IS NULL ORDER BY T1.held_on",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-08-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-dates",
+      "question": "List every recorded meetup date.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2024-06-09"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2024-08-12"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2024-07-11"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"meetups\",\"select\":[[\"Column\",{\"table\":\"meetups\",\"column\":\"held_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"meetups\".\"held_on\" FROM \"meetups\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-06-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-08-12"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-07-11"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT held_on FROM meetups\"}",
+        "sql": "SELECT held_on FROM meetups",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2024-06-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-08-12"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2024-07-11"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

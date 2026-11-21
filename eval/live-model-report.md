@@ -300,3 +300,50 @@ To reproduce, use revision `40c3d65` for the before measurements and `09c4fe9` f
 moon run --quiet --target native cmd/eval -- --live --filter-dev
 moon run --quiet --target native cmd/eval -- --live --holdout
 ```
+
+## Name and date column binding
+
+The archived museum run showed how a valid query could return zero rows for the wrong reason. The model selected `exhibitions.opens_on` as its output, then proposed binding the exhibition name to that same date column. Both columns store SQLite text, so type checking alone accepted the proposal. [Baseline museum replies](results/qwen2.5-coder-1.5b-museum-text-filters.json)
+
+### Calendar development
+
+We fixed ten development questions and a calendar database at `8336d9f`. A release is literally named `2025-02-14` and was published on `2025-08-19`. Two other releases were published on `2025-02-14`. Asking when the release named `2025-02-14` was published reads `published_on` and filters `label`. Asking which releases were published on `2025-02-14` reads `label` and filters `published_on`. The meetup table adds a third plausible binding, the venue. Other cases cover a missing release, distinguishing an archive date from a publication date, and returning every recorded meetup date. [Questions and expected rows](binding-dev/questions.json) · [SQLite schema and rows](binding-dev/calendar.sql)
+
+For a validated, unfiltered, ungrouped single-table plan that returns one ordinary text column, the reviewer receives that column's name and examples that distinguish the output from the filter. It still validates each proposed equality against the catalog and the literal in the question. The reviewer can return a null proposal for an unrestricted list. No database contents are sent in this review. [Planner implementation](../planner/filter.mbt)
+
+| Calendar measure | Before | Frozen planner |
+| --- | ---: | ---: |
+| Exact equality proposal or explicit null, ten isolated reviewer calls | 8/10 | 10/10 |
+| Correct typed rows, full structured path | 5/10 | 6/10 |
+| Correct typed rows, full direct SQL path | 1/10 | 1/10 |
+| False abstentions, each full path | 2/10 | 2/10 |
+
+The isolated calls supplied the intended output column to the frozen reviewer. The probe artifact stores the system message, alternating user and assistant examples, and each final user input verbatim for replay at the same chat endpoint. Each compared the model's raw JSON with the expected filter independently of assessment and first-plan generation. The baseline chose `held_on` for the meetup name Cloud Circle and produced an incomplete equality for the all-dates question. The frozen reviewer chose `name` and explicit null respectively. In the full structured run only three first plans reached the review. Cloud Circle changed from zero rows to `2024-06-09`, Union Yard kept its venue filter, and the all-dates query kept every row. Early refusals and first plans with existing predicates account for the gap between the isolated and full-path scores. [Isolated requests and replies](results/qwen2.5-coder-1.5b-calendar-binding-probes.json) · [Full baseline](results/qwen2.5-coder-1.5b-calendar-binding-baseline.json) · [Full frozen run](results/qwen2.5-coder-1.5b-calendar-binding.json)
+
+Six calendar controls and eleven earlier tool controls cover negation, alternatives and partial matches in English and Chinese. Each begins with an eligible unfiltered plan and fails if the equality reviewer is invoked or the plan changes. All 17 passed. These tests cover the optional review. Operator mistakes in the first generated plan remain possible. [Native regression tests](../planner/planner_test.mbt) · [Earlier end-to-end operator probes](#tool-development-and-operator-controls)
+
+### Museum reevaluation
+
+We froze the planner at `68b111d14a15f7d86f38e153e39b1b2b24fb6640` following calendar development, then ran both paths twice on the same 20 museum questions. Both runs used the pinned local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, llama.cpp b12503 on Vulkan1, temperature 0, seed 42, the same SQLite snapshot, ordering and typed-row scorer. The museum questions have been reevaluated across several development rounds. This comparison measures change on that fixed benchmark.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed results on answerable questions | 8/12 → 9/12 | 6/12 → 6/12 |
+| Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Invalid output | 0/20 → 0/20 | 0/20 → 0/20 |
+
+Only `exhibition-opening` changed. The initial plan still selected the opening date with no filter. The new proposal was `{"equals":["title","Ink Routes"]}`. SQLite ran the query below with one bound text parameter, `Ink Routes`, and returned one typed text value, `2024-05-08`. Each of the other 19 structured observations and all 20 direct SQL observations matched the baseline. The remaining three structured errors were `loaned-work-titles`, `painting-values-with-duplicates` and `recent-harbor-requests`. Neither path had a provider or execution failure. Both complete reports had identical bytes. [Frozen museum replies, parameters and rows](results/qwen2.5-coder-1.5b-museum-column-binding.json) · [Previous museum run](results/qwen2.5-coder-1.5b-museum-text-filters.json)
+
+```sql
+SELECT "exhibitions"."opens_on" FROM "exhibitions" WHERE "exhibitions"."title" = ?
+```
+
+To reproduce the full comparison, use `8336d9f` for the baseline and `68b111d` for the frozen implementation. Start the pinned local server and set the endpoint and model as shown in the README, then run these commands from the repository root. Each live command generates fresh replies for both paths. [Server setup and environment](../README.md#reproduce-the-comparison)
+
+```powershell
+moon test --target native planner
+moon run --quiet --target native cmd/eval -- --fixture --binding-dev
+moon run --quiet --target native cmd/eval -- --live --binding-dev > calendar-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
