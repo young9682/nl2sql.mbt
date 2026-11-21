@@ -89,6 +89,20 @@ The verifier prints the paths to both reports. `audit-result.json` records the e
 
 The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite.
 
+### Independent museum holdout
+
+The holdout uses a separate SQLite museum catalog and 20 questions fixed before inference. Both paths use the same local Qwen2.5-Coder-1.5B-Instruct model, answerability check, and generation settings from the development-set comparison. The holdout was kept out of prompt tuning. [Questions and expected results](eval/holdout/questions.json) · [Museum schema and sample data](eval/holdout/museum.sql)
+
+| Metric | Structured query plan | Direct SQL |
+| --- | ---: | ---: |
+| Correct abstention on unanswerable questions | 4/8 (50%) | 4/8 (50%) |
+| False abstention on answerable questions | 0/12 (0%) | 0/12 (0%) |
+| Correct results on answerable questions | 3/12 (25%) | 6/12 (50%) |
+
+Both paths missed the same four refusals. For example, both tried to answer which loans were overdue even though the catalog records no due dates. Direct SQL correctly returned an empty result for the North Annex question, while the structured plan chose an invalid join. Two local runs produced byte-identical reports. [Holdout analysis](eval/live-model-report.md#independent-museum-holdout) · [Raw replies and results](eval/results/qwen2.5-coder-1.5b-museum-holdout.json)
+
+### Development set
+
 The live comparison runs the same schema-only answerability check for both paths. It supplies the question and table and column names to Qwen2.5-Coder 1.5B. For supported questions, each path uses its existing prompt and the full catalog. The before and after runs use the same eight questions, SQLite snapshot, model, and JSON grammar.
 
 | Metric | Structured plan before | Structured plan after | Direct SQL before | Direct SQL after |
@@ -105,6 +119,7 @@ Replay the checked-in replies for both paths from the repository root.
 
 ```bash
 moon run --quiet --target native cmd/eval -- --fixture
+moon run --quiet --target native cmd/eval -- --fixture --holdout
 ```
 
 For the live run, use the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, `llama.cpp b12503` Windows Vulkan build, and JSON grammar. Put `llama-server.exe` on your path and run the commands below in PowerShell from the directory containing the GGUF and grammar. Use `llama-server --list-devices` to choose the device for your system. [Pinned downloads and checksums](eval/live-model-report.md#reproduce)
@@ -118,7 +133,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator.
+In a second PowerShell session at the repository root, run the live evaluator. Add `--holdout` to select the museum database and its questions.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -128,9 +143,11 @@ Remove-Item Env:NL2SQL_API_KEY -ErrorAction SilentlyContinue
 moon update
 moon run --quiet --target native cmd/eval -- --live > nl2sql-answerability.json
 if ($LASTEXITCODE -ne 0) { throw 'Live evaluation failed. Inspect nl2sql-answerability.json.' }
+moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
+if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```
 
-Both modes compare typed rows against the same expected results. The report records per-question outcomes, executed queries and parameters, correct rows, invalid output, and correct abstention. Live mode also records the original answerability and generation replies. [Fixed question set](eval/questions.json) · [Full M3 report](eval/live-model-report.md)
+Both modes compare typed rows against the expected results for the selected set. The report records per-question outcomes, executed queries and parameters, result accuracy, invalid output, correct abstention, and false abstention. Live mode also records the original answerability and generation replies. [Development questions](eval/questions.json) · [Full M3 report](eval/live-model-report.md)
 
 ## WASM demo
 
