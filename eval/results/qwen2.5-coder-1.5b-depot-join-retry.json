@@ -1,0 +1,557 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/join-dev/depot.db",
+  "questions": "eval/join-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 4,
+      "total": 9,
+      "rate": 0.4444444444444444
+    },
+    "invalid_output_rate": {
+      "count": 1,
+      "total": 9,
+      "rate": 0.1111111111111111
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 3,
+      "total": 9,
+      "rate": 0.3333333333333333
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 4,
+      "total": 9,
+      "rate": 0.4444444444444444
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 9,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 3,
+      "total": 9,
+      "rate": 0.3333333333333333
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "west-bays",
+      "question": "列出西区（west）的货位代码。",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "A17"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "C14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"zone\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"bays\",\"select\":[[\"Column\",{\"table\":\"bays\",\"column\":\"code\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"bays\",\"column\":\"zone\"},\"Equal\",[\"Text\",\"west\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"bays\".\"code\" FROM \"bays\" WHERE \"bays\".\"zone\" = ?",
+        "params": [
+          [
+            "Text",
+            "west"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "A17"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "C14"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"code\"}]],\"joins\":[{\"table\":\"bays\",\"via\":\"crates\",\"on\":\"crates.bay_id=bays.id\"}],\"filters\":[[\"IsNull\",{\"table\":\"crates\",\"column\":\"code\"}]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"zone\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.code FROM bays AS T1 INNER JOIN crates AS T2 ON T1.id = T2.bay_id WHERE T1.zone = 'west'\"}",
+        "sql": "SELECT DISTINCT T1.code FROM bays AS T1 INNER JOIN crates AS T2 ON T1.id = T2.bay_id WHERE T1.zone = 'west'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "A17"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "heavy-tags",
+      "question": "Give the tags of crates weighing at least 18, in tag order.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "ash"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "cedar"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "elm"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "The mass of crates is missing.",
+        "answerability_reply": "{\"no_answer\":\"The mass of crates is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "The mass of crates is missing.",
+        "answerability_reply": "{\"no_answer\":\"The mass of crates is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "mass-frequency",
+      "question": "For each recorded crate mass, give the mass and how many crates have it.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "9"
+          ],
+          [
+            "Integer",
+            "1"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "18"
+          ],
+          [
+            "Integer",
+            "2"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "24"
+          ],
+          [
+            "Integer",
+            "1"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"crate_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"mass\"}],[\"CountAll\",{\"table\":\"crates\",\"column\":\"mass\"}]],\"joins\":[],\"filters\":[],\"group_by\":[{\"table\":\"crates\",\"column\":\"mass\"}],\"order_by\":[]}}",
+        "sql": "SELECT \"crates\".\"mass\", COUNT(*) FROM \"crates\" GROUP BY \"crates\".\"mass\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "9"
+            ],
+            [
+              "Integer",
+              "1"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "18"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "24"
+            ],
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"crate_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT crates.mass, COUNT(*) FROM crates JOIN bays ON crates.bay_id = bays.id GROUP BY crates.mass\"}",
+        "sql": "SELECT crates.mass, COUNT(*) FROM crates JOIN bays ON crates.bay_id = bays.id GROUP BY crates.mass",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "18"
+            ],
+            [
+              "Integer",
+              "2"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "24"
+            ],
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "unassigned",
+      "question": "Which crate tags have no assigned bay?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "oak"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"bay_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"CountAll\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"crates\",\"column\":\"bay_id\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT COUNT(*) FROM \"crates\" WHERE \"crates\".\"bay_id\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "1"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"bay_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT tag FROM crates WHERE bay_id IS NULL\"}",
+        "sql": "SELECT tag FROM crates WHERE bay_id IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "oak"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "occupied-bay",
+      "question": "Give the crate tags at bay A17.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "cedar"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "ash"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[{\"via\":\"crates\",\"table\":\"bays\"}],\"filters\":[[\"Compare\",{\"table\":\"bays\",\"column\":\"code\"},\"Equal\",[\"Text\",\"A17\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"crates\".\"tag\" FROM \"crates\" JOIN \"bays\" ON \"bays\".\"id\" = +\"crates\".\"bay_id\" WHERE \"bays\".\"code\" = ?",
+        "params": [
+          [
+            "Text",
+            "A17"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "cedar"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "ash"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[{\"table\":\"scans\",\"via\":\"crates\"},{\"table\":\"shifts\",\"via\":\"crates\"}],\"filters\":[[\"IsNull\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id WHERE T2.code = 'A17'\"}",
+        "sql": "SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id WHERE T2.code = 'A17'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "cedar"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "ash"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "empty-bay",
+      "question": "货位 C14 里有哪些箱子？返回箱子标签。",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[{\"table\":\"scans\",\"via\":\"crates\",\"on\":\"crate_id\"}],\"filters\":[[\"Compare\",{\"table\":\"scans\",\"column\":\"reader\"},\"Equal\",[\"Text\",\"C14\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"crates\".\"tag\" FROM \"crates\" JOIN \"scans\" ON \"crates\".\"id\" = +\"scans\".\"crate_id\" WHERE \"scans\".\"reader\" = ?",
+        "params": [
+          [
+            "Text",
+            "C14"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id WHERE T2.code = 'C14'\"}",
+        "sql": "SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id WHERE T2.code = 'C14'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "scan-bay",
+      "question": "For every scan by reader R7, give the bay code of the scanned crate.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "A17"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "B29"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "The schema has no column for scans.bay_code.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"scans\\\",\\\"bay_code\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "The schema has no column for scans.bay_code.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"scans\\\",\\\"bay_code\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "crew-crates",
+      "question": "List the tag of every crate stored at a bay where the Red crew has a shift.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "cedar"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "ash"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "InvalidJoin(\"scans\", \"shifts\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[{\"via\":\"crates\",\"table\":\"scans\"},{\"via\":\"scans\",\"table\":\"shifts\"},{\"via\":\"shifts\",\"table\":\"bays\"}],\"filters\":[[\"Compare\",{\"table\":\"bays\",\"column\":\"zone\"},\"Equal\",[\"Text\",\"Red\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"crates\",\"select\":[[\"Column\",{\"table\":\"crates\",\"column\":\"tag\"}]],\"joins\":[{\"table\":\"scans\",\"via\":\"crates\"},{\"table\":\"shifts\",\"via\":\"crates\"}],\"filters\":[[\"IsNull\",{\"table\":\"shifts\",\"column\":\"crew\"}]],\"group_by\":[{\"table\":\"crates\",\"column\":\"tag\"}],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"tag\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id INNER JOIN shifts AS T3 ON T2.id = T3.bay_id WHERE T3.crew = 'Red'\"}",
+        "sql": "SELECT T1.tag FROM crates AS T1 INNER JOIN bays AS T2 ON T1.bay_id = T2.id INNER JOIN shifts AS T3 ON T2.id = T3.bay_id WHERE T3.crew = 'Red'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "ash"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "cedar"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "scan-count",
+      "question": "For each crate with scans, return its tag and the number of scans.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "cedar"
+          ],
+          [
+            "Integer",
+            "2"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "elm"
+          ],
+          [
+            "Integer",
+            "1"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "The schema has no column for crates.scans.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"scans\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "The schema has no column for crates.scans.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"crates\\\",\\\"scans\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    }
+  ]
+}
