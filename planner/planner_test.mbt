@@ -343,6 +343,7 @@ async test "text filter review binds a grounded value and preserves unconfirmed 
     (_, _) => tool_prices,
     review_filter=Some(input => {
       assert_true(input.contains("text_columns"))
+      assert_false(input.contains("return_column"))
       reply
     }),
   )
@@ -398,6 +399,84 @@ async test "review skips filtered, grouped, joined, invalid and refused first re
       "List prices for planes.",
       first,
       _ => fail("unexpected review"),
+    )
+    assert_eq(effective, first)
+    assert_eq(raw, None)
+  }
+}
+
+///|
+async test "calendar review distinguishes the returned column from the bound literal" {
+  let db = "eval/binding-dev/calendar.db"
+  let catalog = @sqlite.read_catalog(db)
+  let literal = "2025-02-14"
+  for
+    (output, column, question, expected) in [
+      (
+        "published_on",
+        "label",
+        "When was the release labeled \"2025-02-14\" published?",
+        ["2025-08-19"],
+      ),
+      (
+        "label",
+        "published_on",
+        "Give the release labels published on 2025-02-14.",
+        ["June Parade", "Saffron Kite"],
+      ),
+    ] {
+    let first =
+      $|{"plan":{"from_table":"releases","select":[["Column",{"table":"releases","column":"\{output}"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+    let proposal =
+      $|{"equals":["\{column}","\{literal}"]}
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      input => {
+        let context = @json.parse(input)
+        guard context
+          is {
+            "return_column": String(returned),
+            "question": String(asked),
+            ..
+          } else {
+          fail("missing projection context")
+        }
+        assert_eq(returned, output)
+        assert_eq(asked, question)
+        proposal
+      },
+    )
+    assert_eq(raw, Some(proposal))
+    guard @planner.execute_reply(db, catalog, effective) is Queried(result) else {
+      fail("expected a calendar query")
+    }
+    assert_eq(result.params, [Text(literal)])
+    // SQL row order is unspecified for both lookups.
+    assert_eq(result.result.rows.length(), expected.length())
+    for value in expected {
+      assert_true(result.result.rows.contains([Text(value)]))
+    }
+  }
+}
+
+///|
+async test "date projection skips equality for negation, alternatives and partial names" {
+  let catalog = @sqlite.read_catalog("eval/binding-dev/calendar.db")
+  let first =
+    #|{"plan":{"from_table":"meetups","select":[["Column",{"table":"meetups","column":"held_on"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  for
+    question in [
+      "Give dates for meetups other than Cloud Circle.", "When was either Cloud Circle or Signal Walk held?",
+      "List dates for meetup names containing Cloud.", "列出除 Cloud Circle 以外的活动日期。",
+      "列出 Cloud Circle 或 Signal Walk 的活动日期。", "列出名称以 Cloud 开头的活动日期。",
+    ] {
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      _ => fail("unexpected equality review for " + question),
     )
     assert_eq(effective, first)
     assert_eq(raw, None)
