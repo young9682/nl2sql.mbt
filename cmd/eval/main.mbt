@@ -44,9 +44,11 @@ async fn main {
       (flag, "eval/join-dev/depot.db", "eval/join-dev/questions.json")
     [_, "--fixture" | "--live" as flag, "--route-dev"] =>
       (flag, "eval/route-dev/radio.db", "eval/route-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--filter-dev"] =>
+      (flag, "eval/filter-dev/tools.db", "eval/filter-dev/questions.json")
     _ => {
       println(
-        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev]",
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev]",
       )
       @env.exit(2)
     }
