@@ -1,0 +1,178 @@
+{
+  "schemas": {
+    "food_cooperative": {
+      "carriers": ["id", "label"],
+      "depots": ["id", "label", "zone"],
+      "inventory": ["item_id", "depot_id", "units", "last_counted_on", "lot_code"],
+      "items": ["id", "label", "brand", "unit_weight", "diet_code"],
+      "shipments": ["id", "depot_id", "item_id", "dispatched_on", "parcel_count", "carrier_id"]
+    },
+    "observatories": {
+      "observatories": ["id", "label", "hemisphere"],
+      "observations": ["id", "telescope_id", "target", "started_at", "ended_at", "exposure_seconds", "status", "note"],
+      "sensor_readings": ["observation_id", "filter_name", "measured_flux", "reading_time"],
+      "telescopes": ["id", "observatory_id", "code", "aperture_mm", "commissioned_on"]
+    },
+    "sports_league": {
+      "matches": ["id", "home_team_id", "away_team_id", "played_on", "home_score", "away_score", "venue"],
+      "people": ["id", "nickname", "joined_on"],
+      "roster": ["id", "team_id", "person_id", "role", "left_on"],
+      "teams": ["id", "name", "division"]
+    }
+  },
+  "cases": [
+    {
+      "id": "cooperative-depot-id",
+      "schema": "food_cooperative",
+      "question": "What is the depot label for depot ID 8102?",
+      "expected": "supported"
+    },
+    {
+      "id": "cooperative-depot-label",
+      "schema": "food_cooperative",
+      "question": "For the depot named Maple Crossing, list the item labels and units currently recorded there.",
+      "expected": "supported"
+    },
+    {
+      "id": "cooperative-zero-units",
+      "schema": "food_cooperative",
+      "question": "List lot codes with exactly zero recorded units.",
+      "expected": "supported"
+    },
+    {
+      "id": "cooperative-quoted-diet",
+      "schema": "food_cooperative",
+      "question": "列出饮食代码为 'gluten-free' 的商品品牌。",
+      "expected": "supported"
+    },
+    {
+      "id": "cooperative-dispatch-range",
+      "schema": "food_cooperative",
+      "question": "Show the dispatch dates for Coastal Courier from March 1 to March 7, 2030.",
+      "expected": "supported"
+    },
+    {
+      "id": "cooperative-arrival-date",
+      "schema": "food_cooperative",
+      "question": "On which dates did shipments carried by Coastal Courier arrive at their destination?",
+      "expected": "no_answer",
+      "missing": "arrival dates"
+    },
+    {
+      "id": "cooperative-purchase-price",
+      "schema": "food_cooperative",
+      "question": "What was the average purchase price per item for the food cooperative?",
+      "expected": "no_answer",
+      "missing": "purchase prices or recorded costs"
+    },
+    {
+      "id": "cooperative-temperature",
+      "schema": "food_cooperative",
+      "question": "哪些配送站的储藏温度低于 4 摄氏度？",
+      "expected": "no_answer",
+      "missing": "depot storage temperatures"
+    },
+    {
+      "id": "observatory-null-note",
+      "schema": "observatories",
+      "question": "Count observations whose note is NULL.",
+      "expected": "supported"
+    },
+    {
+      "id": "observatory-target-literal",
+      "schema": "observatories",
+      "question": "列出目标名称为 'Canopus-99' 的观测开始时间。",
+      "expected": "supported"
+    },
+    {
+      "id": "observatory-aperture",
+      "schema": "observatories",
+      "question": "List telescope codes for telescopes with an aperture above 20000 millimeters.",
+      "expected": "supported"
+    },
+    {
+      "id": "observatory-completion-count",
+      "schema": "observatories",
+      "question": "For each telescope code, count observations with an end time present.",
+      "expected": "supported"
+    },
+    {
+      "id": "observatory-filter-literal",
+      "schema": "observatories",
+      "question": "What is the maximum measured flux for filter H-alpha?",
+      "expected": "supported"
+    },
+    {
+      "id": "observatory-humidity",
+      "schema": "observatories",
+      "question": "On which observations did outdoor humidity exceed 80 percent?",
+      "expected": "no_answer",
+      "missing": "outdoor humidity measurements"
+    },
+    {
+      "id": "observatory-reviewer",
+      "schema": "observatories",
+      "question": "分别列出每次观测的审批人姓名。",
+      "expected": "no_answer",
+      "missing": "reviewer assignments and names"
+    },
+    {
+      "id": "observatory-scheduled-date",
+      "schema": "observatories",
+      "question": "Which observations started later than their scheduled start time?",
+      "expected": "no_answer",
+      "missing": "scheduled observation start times"
+    },
+    {
+      "id": "league-away-team",
+      "schema": "sports_league",
+      "question": "List match dates on which Northbridge played as the away team.",
+      "expected": "supported"
+    },
+    {
+      "id": "league-captain-role",
+      "schema": "sports_league",
+      "question": "For team Northbridge, list current roster members with the role captain and no departure date.",
+      "expected": "supported"
+    },
+    {
+      "id": "league-early-departures",
+      "schema": "sports_league",
+      "question": "列出 1900 年前离队的成员昵称。",
+      "expected": "supported"
+    },
+    {
+      "id": "league-home-scores",
+      "schema": "sports_league",
+      "question": "Count home games with a recorded home score of at least 60, grouped by home team.",
+      "expected": "supported"
+    },
+    {
+      "id": "league-future-date",
+      "schema": "sports_league",
+      "question": "List the venues for matches played on February 29, 2096.",
+      "expected": "supported"
+    },
+    {
+      "id": "league-appearances",
+      "schema": "sports_league",
+      "question": "Which players took part in each match, grouped by match identifier?",
+      "expected": "no_answer",
+      "missing": "per-match player appearances"
+    },
+    {
+      "id": "league-attendance",
+      "schema": "sports_league",
+      "question": "每场比赛售出了多少张门票？",
+      "expected": "no_answer",
+      "missing": "ticket sales per match"
+    },
+    {
+      "id": "league-sponsorship",
+      "schema": "sports_league",
+      "question": "Which team received the most sponsorship money?",
+      "expected": "no_answer",
+      "missing": "team sponsorship amounts"
+    }
+  ]
+}
