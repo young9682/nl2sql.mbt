@@ -93,16 +93,18 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-On the 20-question museum holdout, one retry for a rejected plan raised structured accuracy from **3/12 to 6/12** on answerable questions. Both paths correctly refused all eight unanswerable questions and recorded zero false refusals on the 12 answerable questions. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We selected the retry on nine separate warehouse development cases and froze the implementation before rerunning the museum set. [Museum questions](eval/holdout/questions.json) · [Warehouse development cases](eval/join-dev/questions.json)
+On the 20-question museum holdout, resolving the foreign-key path for North Annex raised structured accuracy from **6/12 to 7/12** on answerable questions. Direct SQL scored **6/12**. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We developed the change on a separate radio database and fixed it before reevaluating the museum set. [Museum questions](eval/holdout/questions.json) · [Radio development questions](eval/route-dev/questions.json)
 
-| Museum metric | Structured plan, before → after retry | Direct SQL, before → after |
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
 | --- | ---: | ---: |
-| Correct results on answerable questions | 3/12 → 6/12 | 6/12 → 6/12 |
-| Invalid output across all questions | 4/20 → 1/20 | 0/20 → 0/20 |
+| Correct results on answerable questions | 6/12 → 7/12 | 6/12 → 6/12 |
+| Invalid output across all questions | 1/20 → 0/20 | 0/20 → 0/20 |
 | Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
 | False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
 
-The three recovered queries all needed a single table. They now return the right floor-filtered names, year-filtered titles and grouped insurance totals. North Annex genuinely requires a join. The replacement fixed its name filter but still chose an undeclared edge from loans to galleries. Direct SQL returned the expected empty result. [Four-case analysis and raw replies](eval/live-model-report.md#join-generation-on-the-museum-holdout) · [Reproduction commands](#reproduce-the-comparison)
+When a replacement plan still fails JOIN validation, the compiler can connect two explicitly referenced tables by a unique direct foreign key or a unique two-hop path. North Annex now uses `artworks.gallery_id` to reach `galleries.id` and binds the gallery name. The query returned zero rows on the original snapshot and exactly one title when that artwork was reassigned to North Annex in a memory copy. Five other structured queries still returned incorrect rows. [Routing analysis and raw replies](eval/live-model-report.md#direct-and-two-hop-foreign-key-routing) · [Reproduction commands](#reproduce-the-comparison)
+
+On the radio development set, all four direct and four two-hop cases recovered their reference SQL, bindings and rows when only the JOIN was corrupted. In end-to-end local model runs both paths scored 1/8 before and after. Five schema assessment errors occurred before plan generation. [Radio test and live results](eval/live-model-report.md#radio-development-cases)
 
 ### Development set
 
@@ -141,7 +143,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
+In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, `--live --route-dev` for the eight radio questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -153,6 +155,8 @@ moon run --quiet --target native cmd/eval -- --live > nl2sql-answerability.json
 if ($LASTEXITCODE -ne 0) { throw 'Live evaluation failed. Inspect nl2sql-answerability.json.' }
 moon run --quiet --target native cmd/eval -- --live --join-dev > nl2sql-join-dev.json
 if ($LASTEXITCODE -ne 0) { throw 'JOIN development evaluation failed. Inspect nl2sql-join-dev.json.' }
+moon run --quiet --target native cmd/eval -- --live --route-dev > nl2sql-route-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'Radio development evaluation failed. Inspect nl2sql-route-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```
