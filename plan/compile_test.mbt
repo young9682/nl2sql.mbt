@@ -154,3 +154,59 @@ test "require valid grouping, projected order positions, and a positive limit" {
   let limit = compile_error(catalog, { ..plan, limit: Some(-1), })
   assert_true(limit is Some(@plan.PlanError::InvalidLimit(-1)))
 }
+
+///|
+test "route repair requires an unambiguous declared path within two hops" {
+  let tables = ["a", "b", "c", "d", "e"].map(name => {
+    @lib.Table::new(name, [@lib.Column::new("id", "INTEGER")])
+  })
+  let schema = @lib.Schema::new(tables)
+  let key = (source, target) => {
+    let fk : @lib.ForeignKey = {
+      source_table: source,
+      source_columns: ["id"],
+      target_table: target,
+      target_columns: [Some("id")],
+    }
+    fk
+  }
+  let invalid =
+    #|{"plan":{"from_table":"a","select":[["Column",{"table":"a","column":"id"}]],"joins":[{"table":"b","via":"missing"}],"filters":[["Compare",{"table":"d","column":"id"},"Equal",["Integer","3"]]],"group_by":[],"order_by":[]}}
+  for
+    keys in [
+      [key("a", "d"), key("d", "a")],
+      [key("a", "b"), key("b", "d"), key("a", "c"), key("c", "d")],
+      [key("a", "b"), key("a", "b"), key("b", "d")],
+      [key("a", "b"), key("b", "c"), key("c", "d")],
+      [key("a", "b"), key("c", "d")],
+    ] {
+    let catalog : @lib.Catalog = { schema, foreign_keys: keys, }
+    let refused = try {
+      ignore(@plan.compile_reply(catalog, invalid, resolve_join_path=true))
+      false
+    } catch {
+      @plan.PlanError::InvalidJoin(_, _) => true
+      error => raise error
+    }
+    assert_true(refused)
+  }
+  let catalog : @lib.Catalog = {
+    schema,
+    foreign_keys: [key("A", "D"), key("a", "b"), key("b", "d")],
+  }
+  guard @plan.compile_reply(catalog, invalid, resolve_join_path=true)
+    is Query(shortest) else {
+    fail("missing direct route")
+  }
+  assert_false(shortest.sql.contains("JOIN \"b\""))
+  assert_true(shortest.sql.contains("JOIN \"d\""))
+  let valid_detour = invalid.replace_all(
+    old="{\"table\":\"b\",\"via\":\"missing\"}",
+    new="{\"table\":\"b\",\"via\":\"a\"},{\"table\":\"d\",\"via\":\"b\"}",
+  )
+  guard @plan.compile_reply(catalog, valid_detour, resolve_join_path=true)
+    is Query(explicit) else {
+    fail("expected explicit valid route")
+  }
+  assert_true(explicit.sql.contains("JOIN \"b\""))
+}

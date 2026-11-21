@@ -257,7 +257,16 @@ async test "an opted-in retry uses declared edges and revalidates the replacemen
     )
     is None,
   )
-  for (accepted, replacement) in [(true, valid), (false, invalid)] {
+  let missing_bridge = valid.replace_all(
+    old="{\"table\":\"crates\",\"via\":\"scans\"},{\"table\":\"bays\",\"via\":\"crates\"}",
+    new="{\"table\":\"bays\",\"via\":\"scans\"}",
+  )
+  for
+    (accepted, replacement) in [
+      (true, valid),
+      (true, missing_bridge),
+      (false, invalid),
+    ] {
     let mut calls = 0
     let result = Some(
       @planner.ask(

@@ -1,0 +1,370 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/route-dev/radio.db",
+  "questions": "eval/route-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 1,
+      "total": 8,
+      "rate": 0.125
+    },
+    "invalid_output_rate": {
+      "count": 7,
+      "total": 8,
+      "rate": 0.875
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 1,
+      "total": 8,
+      "rate": 0.125
+    },
+    "invalid_output_rate": {
+      "count": 6,
+      "total": 8,
+      "rate": 0.75
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "shows-kite",
+      "question": "List the show titles at the studio with callsign KITE.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Crosswind"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Lullaby"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"show_id\\\",\\\"studios\\\",\\\"callsign\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"show_id\\\",\\\"studios\\\",\\\"callsign\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "shows-moss",
+      "question": "List the show titles at the studio with callsign MOSS.",
+      "expected_rows": [],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"show_id\\\",\\\"shows\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"show_id\\\",\\\"shows\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "studio-by-show",
+      "question": "Which studio callsign is associated with the show titled Low Tide?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "WAVE"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "InvalidJoin(\"episodes\", \"shows\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"shows\",\"select\":[[\"Column\",{\"table\":\"shows\",\"column\":\"callsign\"}]],\"joins\":[{\"via\":\"episodes\",\"table\":\"shows\"},{\"via\":\"episodes\",\"table\":\"bookings\"},{\"via\":\"bookings\",\"table\":\"studios\"}],\"filters\":[[\"Compare\",{\"table\":\"shows\",\"column\":\"title\"},\"Equal\",[\"Text\",\"Low Tide\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"episodes\",\"select\":[[\"Column\",{\"table\":\"episodes\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"shows\",\"via\":\"episodes\",\"on\":\"episodes.show_id=shows.id\"}],\"filters\":[[\"Compare\",{\"table\":\"shows\",\"column\":\"title\"},\"Equal\",[\"Text\",\"Low Tide\"]]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.callsign FROM studios AS T1 INNER JOIN shows AS T2 ON T1.id = T2.studio_id INNER JOIN episodes AS T3 ON T2.id = T3.show_id WHERE T3.caption = 'Low Tide'\"}",
+        "sql": "SELECT T1.callsign FROM studios AS T1 INNER JOIN shows AS T2 ON T1.id = T2.studio_id INNER JOIN episodes AS T3 ON T2.id = T3.show_id WHERE T3.caption = 'Low Tide'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "episodes-by-show",
+      "question": "List the episode captions for the show titled Crosswind.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Granite"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Copper"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"caption\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"episodes\",\"select\":[[\"Column\",{\"table\":\"episodes\",\"column\":\"caption\"}]],\"joins\":[{\"table\":\"shows\",\"via\":\"episodes\",\"on\":\"episodes.show_id=shows.id\"}],\"filters\":[[\"Compare\",{\"table\":\"shows\",\"column\":\"title\"},\"Equal\",[\"Text\",\"Crosswind\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"episodes\".\"caption\" FROM \"episodes\" JOIN \"shows\" ON \"shows\".\"id\" = +\"episodes\".\"show_id\" WHERE \"shows\".\"title\" = ?",
+        "params": [
+          [
+            "Text",
+            "Crosswind"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Granite"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Copper"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"caption\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT e.caption FROM episodes e JOIN shows s ON e.show_id = s.id WHERE s.title = 'Crosswind'\"}",
+        "sql": "SELECT e.caption FROM episodes e JOIN shows s ON e.show_id = s.id WHERE s.title = 'Crosswind'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Granite"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Copper"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "episodes-kite",
+      "question": "List one episode caption per episode produced by shows at studio KITE.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Granite"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Copper"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Granite"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "episodes-moss",
+      "question": "List one episode caption per episode produced by shows at studio MOSS.",
+      "expected_rows": [],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "studios-by-caption",
+      "question": "Return the studio callsign for each episode whose caption is Granite. Keep repeated callsigns.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "KITE"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "KITE"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "UnknownColumn({ table: \"episodes\", column: \"callsign\" })",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"episodes\",\"select\":[[\"Column\",{\"table\":\"episodes\",\"column\":\"callsign\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"episodes\",\"column\":\"caption\"},\"Equal\",[\"Text\",\"Granite\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"studio_id\"}],\n      [\"Column\", {\"table\": \"studios\", \"column\": \"callsign\"}]\n    ],\n    \"joins\": [\n      {\n        \"table\": \"studios\",\n        \"via\": \"bookings\"\n      }\n    ],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"episodes\", \"column\": \"caption\"}, \"Equal\", [\"Text\", \"Granite\"]]\n    ],\n    \"group_by\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"studio_id\"}]\n    ],\n    \"order_by\": [\n      {\"position\": 2, \"descending\": true}\n    ]\n  }\n}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T3.studio_id\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"episodes\\\",\\\"studio_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.callsign FROM studios AS T1 INNER JOIN bookings AS T2 ON T1.id = T2.studio_id INNER JOIN episodes AS T3 ON T2.id = T3.studio_id WHERE T3.caption = 'Granite' GROUP BY T1.callsign\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "shows-by-booking",
+      "question": "List show titles at studios that have booked guest Rhea.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Crosswind"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Lullaby"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"bookings\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "expected a table and missing column or null",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"bookings\\\",\\\"studio_id\\\",\\\"shows\\\",\\\"title\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    }
+  ]
+}

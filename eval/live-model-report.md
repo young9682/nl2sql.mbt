@@ -194,3 +194,63 @@ To reproduce, use revision `07b1a2e` and the pinned local server. The following 
 moon run --quiet --target native cmd/eval -- --live --join-dev
 moon run --quiet --target native cmd/eval -- --live --holdout
 ```
+
+## Direct and two-hop foreign-key routing
+
+The previous North Annex replacement selected artwork titles and filtered on the right gallery name, but proposed reaching galleries through loans. The compiler rejected that edge. We tested whether the catalog could connect the two tables already named by the column expressions.
+
+For a replacement plan rejected with `InvalidJoin`, the resolver considers ordinary column projections and filters referring to exactly two tables, including the starting table. It first looks for a unique direct foreign key, then for a unique two-edge path through one intermediate table. The compiler validates the resulting plan, including its column references and composite key conditions. Parallel keys, tied shortest paths, missing links and routes longer than two edges remain errors. The resolver changes only the joins. A valid first plan or valid replacement follows its original path.
+
+### Radio development cases
+
+We fixed eight questions on a separate radio scheduling database at `b014c5b`. Four require a direct foreign key and four require two hops. The cases cover both directions, nonempty and empty results, and repeated captions or callsigns. To isolate routing, a test takes each reference plan and inserts a detour into a direct join or removes the bridge from a two-hop join. All eight corrupted plans failed strict compilation. With resolution enabled, all eight produced the reference SQL and bindings and returned the expected typed rows. Separate tests cover ambiguous, disconnected and three-hop routes. [Development questions](route-dev/questions.json) · [Radio catalog and records](route-dev/radio.sql) · [Route regression test](../cmd/eval/score_wbtest.mbt)
+
+In the full local-model run on the same radio questions, both paths scored 1/8 before and after. Five questions received malformed schema assessments before generation. Of the three that reached structured generation, one was correct and two assigned a column to the wrong table. The deterministic test above measures recovery when the endpoints and columns are specified correctly. [End-to-end radio replies](results/qwen2.5-coder-1.5b-radio-route.json)
+
+### Frozen museum reevaluation
+
+We froze the implementation at `845a3738564994910c570ea168a123226fc1afb3` before reevaluating the museum holdout. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, llama.cpp b12503 Vulkan server, pinned JSON grammar, temperature 0, seed 42 and museum snapshot as the preceding comparison. The prompts, model-call budget and scorer were unchanged.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed results on answerable questions | 6/12 → 7/12 | 6/12 → 6/12 |
+| Invalid output | 1/20 → 0/20 | 0/20 → 0/20 |
+| Correct abstentions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
+
+North Annex accounted for the single improvement. All raw first and replacement model replies matched the baseline. The revised compiler replaced the invalid route with the declared artworks-to-galleries edge and executed the following SQL with `North Annex` as its text parameter. The other 19 structured observations and all 20 direct SQL observations matched the baseline. Five structured queries returned wrong rows. Two complete museum reruns produced byte-identical reports with zero provider or execution failures. [Previous report](results/qwen2.5-coder-1.5b-museum-join-retry.json) · [New raw replies, SQL, bindings and rows](results/qwen2.5-coder-1.5b-museum-route.json)
+
+```sql
+SELECT "artworks"."title" FROM "artworks"
+JOIN "galleries" ON "galleries"."id" = +"artworks"."gallery_id"
+WHERE "galleries"."name" = ?
+```
+
+To reproduce the live comparison, run the following from revision `845a373` with the pinned local server. Use `b014c5b` for the before measurements with the same commands. [Server and evaluator setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --live --route-dev
+moon run --quiet --target native cmd/eval -- --live --holdout
+```
+
+The following Python check replays the recorded query without a model server. Run it from the repository root on the revision containing the report. The original database opens read-only. The query returns an empty list on the original data and a single title after moving one artwork in the memory copy.
+
+```python
+import json
+import sqlite3
+from pathlib import Path
+
+report = json.loads(Path("eval/results/qwen2.5-coder-1.5b-museum-route.json").read_bytes())
+case = next(row["structured"] for row in report["cases"] if row["id"] == "north-annex-empty")
+assert case["params"] == [["Text", "North Annex"]]
+params = (case["params"][0][1],)
+source = sqlite3.connect("file:eval/holdout/museum.db?mode=ro", uri=True)
+db = sqlite3.connect(":memory:")
+source.backup(db)
+source.close()
+assert db.execute(case["sql"], params).fetchall() == []
+db.execute("UPDATE artworks SET gallery_id=(SELECT id FROM galleries WHERE name=?) WHERE title=?",
+           ("North Annex", "Night Market"))
+assert db.execute(case["sql"], params).fetchall() == [("Night Market",)]
+db.close()
+```
