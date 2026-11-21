@@ -155,6 +155,7 @@ async fn compare_case(
   structured~ : Bool,
 ) -> Observation {
   let mut answerability_reply = None
+  let mut rejected_plan_reply = None
   let reply = match live {
     None =>
       (if structured { question.fixture_plan } else { question.fixture_sql }).stringify()
@@ -167,7 +168,15 @@ async fn compare_case(
           return { ..grade_abstention(question, reason), answerability_reply, }
         }
         let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
-        (model.generate)(prompt, input)
+        let first = (model.generate)(prompt, input)
+        if structured &&
+          @planner.plan_retry_request(catalog, question.question, first)
+          is Some((instructions, context)) {
+          rejected_plan_reply = Some(first)
+          (model.generate)(instructions, context)
+        } else {
+          first
+        }
       } catch {
         error => {
           let observation = match error {
@@ -179,7 +188,7 @@ async fn compare_case(
               failure(ProviderFailure, reason)
             _ => failure(ProviderFailure, "model request failed")
           }
-          return { ..observation, answerability_reply, }
+          return { ..observation, answerability_reply, rejected_plan_reply, }
         }
       }
   }
@@ -225,7 +234,12 @@ async fn compare_case(
     }
   })
   if live is Some(_) {
-    { ..observation, answerability_reply, model_reply: Some(reply), }
+    {
+      ..observation,
+      answerability_reply,
+      rejected_plan_reply,
+      model_reply: Some(reply),
+    }
   } else {
     observation
   }

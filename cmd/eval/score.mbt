@@ -16,6 +16,7 @@ struct Observation {
   status : Outcome
   detail : String
   answerability_reply : String?
+  rejected_plan_reply : String?
   model_reply : String?
   sql : String?
   params : Array[Json]
@@ -33,7 +34,7 @@ fn Observation::to_json(self : Observation) -> Json {
     Some(reply) => Json::string(reply)
     None => Json::null()
   }
-  {
+  let record : Map[String, Json] = {
     "status": @json.to_json(self.status),
     "detail": Json::string(self.detail),
     "answerability_reply": self.answerability_reply
@@ -45,6 +46,10 @@ fn Observation::to_json(self : Observation) -> Json {
     "rows": optional_rows(self.rows),
     "truncated": Json::boolean(self.truncated),
   }
+  if self.rejected_plan_reply is Some(reply) {
+    record["rejected_plan_reply"] = Json::string(reply)
+  }
+  Json::object(record)
 }
 
 ///|
@@ -54,6 +59,7 @@ fn failure(status : Outcome, detail : String) -> Observation {
     detail,
     answerability_reply: None,
     model_reply: None,
+    rejected_plan_reply: None,
     sql: None,
     params: [],
     rows: None,
@@ -101,6 +107,7 @@ fn grade_rows(
     status,
     answerability_reply: None,
     model_reply: None,
+    rejected_plan_reply: None,
     detail: if result.truncated {
       "query result was truncated"
     } else {

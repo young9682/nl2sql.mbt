@@ -23,13 +23,15 @@ pub suberror PlannerError {
 ///|
 /// Loads the catalog from the database, requests a structured plan, and runs the
 /// compiled query through the native read-only executor. An optional
-/// answerability model can decline before the planner is called.
+/// answerability model can decline before the planner is called. Set retry_invalid
+/// to retry a rejected plan once before execution.
 pub async fn ask(
   path : String,
   question : String,
   generate : async (String, String) -> String,
   max_rows~ : Int32 = 100,
   timeout_ms~ : Int32 = 5000,
+  retry_invalid~ : Bool = false,
   assess~ : (async (@lib.Catalog, String) -> String)? = None,
 ) -> Answer {
   let catalog = @sqlite.read_catalog(path, timeout_ms~)
@@ -39,7 +41,13 @@ pub async fn ask(
     return NoAnswer(reason)
   }
   let reply = generate(plan_prompt, model_input(catalog, question))
-  execute_reply(path, catalog, reply, max_rows~, timeout_ms~)
+  let final_reply = if retry_invalid &&
+    plan_retry_request(catalog, question, reply) is Some((system, input)) {
+    generate(system, input)
+  } else {
+    reply
+  }
+  execute_reply(path, catalog, final_reply, max_rows~, timeout_ms~)
 }
 
 ///|
