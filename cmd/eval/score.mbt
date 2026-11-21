@@ -140,6 +140,7 @@ fn summarize(
     "result_accuracy": metric(count(CorrectRows), answerable),
     "invalid_output_rate": metric(count(InvalidOutput), outcomes.length()),
     "correct_abstention_rate": metric(count(CorrectAbstention), unanswerable),
+    "false_abstention_rate": metric(count(FalseAbstention), answerable),
     "provider_failures": Json::number(count(ProviderFailure).to_double()),
     "execution_failures": Json::number(count(ExecutionFailure).to_double()),
   }

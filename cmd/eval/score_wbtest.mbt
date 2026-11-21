@@ -26,6 +26,7 @@ test "report metrics keep errors and false abstentions in the denominators" {
       "result_accuracy": { "count": 1, "total": 3, .. },
       "invalid_output_rate": { "count": 1, "total": 5, .. },
       "correct_abstention_rate": { "count": 1, "total": 2, .. },
+      "false_abstention_rate": { "count": 1, "total": 3, .. },
       "provider_failures": 1,
       ..
     },
@@ -52,6 +53,7 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
     generate: (_, _) => reply,
   }
   let rejected = compare_case(
+    database,
     question,
     catalog,
     input,
@@ -61,7 +63,14 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
   assert_true(rejected.status == InvalidOutput)
   assert_eq(rejected.answerability_reply, Some(support))
   assert_eq(rejected.model_reply, Some(reply))
-  let fixture = compare_case(question, catalog, input, None, structured=false)
+  let fixture = compare_case(
+    database,
+    question,
+    catalog,
+    input,
+    None,
+    structured=false,
+  )
   assert_true(fixture.status == CorrectRows)
   assert_eq(fixture.model_reply, None)
 }
@@ -82,6 +91,7 @@ async test "both live paths keep the assessment and skip generation on a refusal
     #|{"no_answer":"The database does not record logins."}
   for structured in [true, false] {
     let result = compare_case(
+      database,
       question,
       catalog,
       input,

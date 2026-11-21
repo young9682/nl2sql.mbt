@@ -36,13 +36,20 @@ struct LiveModel {
 ///|
 async fn main {
   let args = @env.args()
-  let mode = match args {
-    [_, "--fixture"] => "fixture"
-    [_, "--live"] => "live"
+  let (mode, holdout) = match args {
+    [_, "--fixture"] => ("fixture", false)
+    [_, "--live"] => ("live", false)
+    [_, "--fixture", "--holdout"] => ("fixture", true)
+    [_, "--live", "--holdout"] => ("live", true)
     _ => {
-      println("Usage: moon run cmd/eval -- --fixture or --live")
+      println("Usage: moon run cmd/eval -- (--fixture | --live) [--holdout]")
       @env.exit(2)
     }
+  }
+  let (db_path, question_path) = if holdout {
+    ("eval/holdout/museum.db", "eval/holdout/questions.json")
+  } else {
+    (database, questions_file)
   }
   let name = if mode == "live" {
     required_env("NL2SQL_MODEL")
@@ -63,8 +70,8 @@ async fn main {
   } else {
     None
   }
-  let catalog = @sqlite.read_catalog(database)
-  let input = @fs.read_file(questions_file).text()
+  let catalog = @sqlite.read_catalog(db_path)
+  let input = @fs.read_file(question_path).text()
   let cases : Array[Case] = @json.from_json(
     @json.parse(input, reject_duplicate_keys=true),
   )
@@ -80,6 +87,7 @@ async fn main {
     }
     let input = @planner.model_input(catalog, question.question)
     let plan_result = compare_case(
+      db_path,
       question,
       catalog,
       input,
@@ -87,6 +95,7 @@ async fn main {
       structured=true,
     )
     let sql_result = compare_case(
+      db_path,
       question,
       catalog,
       input,
@@ -107,8 +116,8 @@ async fn main {
   let report : Json = {
     "mode": Json::string(mode),
     "model": Json::string(name),
-    "database": Json::string(database),
-    "questions": Json::string(questions_file),
+    "database": Json::string(db_path),
+    "questions": Json::string(question_path),
     "temperature": 0,
     "row_limit": Json::number(MAX_ROWS.to_double()),
     "query_timeout_ms": Json::number(TIMEOUT_MS.to_double()),
@@ -139,6 +148,7 @@ fn required_env(name : String) -> String {
 
 ///|
 async fn compare_case(
+  db_path : String,
   question : Case,
   catalog : @lib.Catalog,
   input : String,
@@ -177,7 +187,7 @@ async fn compare_case(
     if structured {
       match
         @planner.execute_reply(
-          database,
+          db_path,
           catalog,
           reply,
           max_rows=MAX_ROWS,
@@ -198,7 +208,7 @@ async fn compare_case(
           match (fields.get("sql"), fields.get("no_answer")) {
             (Some(String(sql)), None) => {
               let result = @sqlite.query(
-                database,
+                db_path,
                 sql,
                 max_rows=MAX_ROWS,
                 timeout_ms=TIMEOUT_MS,
