@@ -1,0 +1,66 @@
+[
+  {
+    "id": "shows-kite",
+    "question": "List the show titles at the studio with callsign KITE.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Crosswind"]], [["Text", "Lullaby"]]],
+    "fixture_plan": {"plan": {"from_table": "shows", "select": [["Column", {"table": "shows", "column": "title"}]], "joins": [{"table": "studios", "via": "shows"}], "filters": [["Compare", {"table": "studios", "column": "callsign"}, "Equal", ["Text", "KITE"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT shows.title FROM shows JOIN studios ON shows.studio_id=studios.id WHERE studios.callsign = 'KITE'"}
+  },
+  {
+    "id": "shows-moss",
+    "question": "List the show titles at the studio with callsign MOSS.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "shows", "select": [["Column", {"table": "shows", "column": "title"}]], "joins": [{"table": "studios", "via": "shows"}], "filters": [["Compare", {"table": "studios", "column": "callsign"}, "Equal", ["Text", "MOSS"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT shows.title FROM shows JOIN studios ON shows.studio_id=studios.id WHERE studios.callsign = 'MOSS'"}
+  },
+  {
+    "id": "studio-by-show",
+    "question": "Which studio callsign is associated with the show titled Low Tide?",
+    "ordered": false,
+    "expected_rows": [[["Text", "WAVE"]]],
+    "fixture_plan": {"plan": {"from_table": "studios", "select": [["Column", {"table": "studios", "column": "callsign"}]], "joins": [{"table": "shows", "via": "studios"}], "filters": [["Compare", {"table": "shows", "column": "title"}, "Equal", ["Text", "Low Tide"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT studios.callsign FROM studios JOIN shows ON shows.studio_id=studios.id WHERE shows.title = 'Low Tide'"}
+  },
+  {
+    "id": "episodes-by-show",
+    "question": "List the episode captions for the show titled Crosswind.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Granite"]], [["Text", "Copper"]]],
+    "fixture_plan": {"plan": {"from_table": "episodes", "select": [["Column", {"table": "episodes", "column": "caption"}]], "joins": [{"table": "shows", "via": "episodes"}], "filters": [["Compare", {"table": "shows", "column": "title"}, "Equal", ["Text", "Crosswind"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT episodes.caption FROM episodes JOIN shows ON episodes.show_id=shows.id WHERE shows.title = 'Crosswind'"}
+  },
+  {
+    "id": "episodes-kite",
+    "question": "List one episode caption per episode produced by shows at studio KITE.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Granite"]], [["Text", "Copper"]], [["Text", "Granite"]]],
+    "fixture_plan": {"plan": {"from_table": "episodes", "select": [["Column", {"table": "episodes", "column": "caption"}]], "joins": [{"table": "shows", "via": "episodes"}, {"table": "studios", "via": "shows"}], "filters": [["Compare", {"table": "studios", "column": "callsign"}, "Equal", ["Text", "KITE"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT episodes.caption FROM episodes JOIN shows ON episodes.show_id=shows.id JOIN studios ON shows.studio_id=studios.id WHERE studios.callsign = 'KITE'"}
+  },
+  {
+    "id": "episodes-moss",
+    "question": "List one episode caption per episode produced by shows at studio MOSS.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "episodes", "select": [["Column", {"table": "episodes", "column": "caption"}]], "joins": [{"table": "shows", "via": "episodes"}, {"table": "studios", "via": "shows"}], "filters": [["Compare", {"table": "studios", "column": "callsign"}, "Equal", ["Text", "MOSS"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT episodes.caption FROM episodes JOIN shows ON episodes.show_id=shows.id JOIN studios ON shows.studio_id=studios.id WHERE studios.callsign = 'MOSS'"}
+  },
+  {
+    "id": "studios-by-caption",
+    "question": "Return the studio callsign for each episode whose caption is Granite. Keep repeated callsigns.",
+    "ordered": false,
+    "expected_rows": [[["Text", "KITE"]], [["Text", "KITE"]]],
+    "fixture_plan": {"plan": {"from_table": "studios", "select": [["Column", {"table": "studios", "column": "callsign"}]], "joins": [{"table": "shows", "via": "studios"}, {"table": "episodes", "via": "shows"}], "filters": [["Compare", {"table": "episodes", "column": "caption"}, "Equal", ["Text", "Granite"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT studios.callsign FROM studios JOIN shows ON shows.studio_id=studios.id JOIN episodes ON episodes.show_id=shows.id WHERE episodes.caption = 'Granite'"}
+  },
+  {
+    "id": "shows-by-booking",
+    "question": "List show titles at studios that have booked guest Rhea.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Crosswind"]], [["Text", "Lullaby"]]],
+    "fixture_plan": {"plan": {"from_table": "shows", "select": [["Column", {"table": "shows", "column": "title"}]], "joins": [{"table": "studios", "via": "shows"}, {"table": "bookings", "via": "studios"}], "filters": [["Compare", {"table": "bookings", "column": "guest"}, "Equal", ["Text", "Rhea"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT shows.title FROM shows JOIN studios ON shows.studio_id=studios.id JOIN bookings ON bookings.studio_id=studios.id WHERE bookings.guest = 'Rhea'"}
+  }
+]
