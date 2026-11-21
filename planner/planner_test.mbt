@@ -546,3 +546,87 @@ async test "aggregate equality review keeps its own context" {
   assert_eq(effective, first)
   assert_eq(raw, Some(proposal))
 }
+
+///|
+test "party examples respect catalog roles, missing parties and unrelated questions" {
+  let catalog = @sqlite.read_catalog("eval/borrower-dev/scores.db")
+  let borrower = @planner.plan_prompt_for(
+    catalog, "Which titles were borrowed by Cedar Choir?",
+  )
+  let lender = @planner.plan_prompt_for(
+    catalog, "List the titles supplied by Cedar Choir.",
+  )
+  assert_true(borrower.contains("matching text role in this schema is renter."))
+  assert_true(lender.contains("matching text role in this schema is lender."))
+  for
+    question in [
+      "List score titles for checkouts with no recorded renter.", "Find titles borrowed by nobody.",
+      "Find titles not borrowed by Cedar Choir.", "Find titles rented by Cedar Choir or Wind Studio.",
+      "Find titles supplied by Cedar Choir and requested by Wind Studio.", "List every score title, ordered by title.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let mixed : @lib.Catalog = {
+    schema: @lib.Schema::new([
+      @lib.Table::new("bookings", [
+        @lib.Column::new("Renter", "TEXT"),
+        @lib.Column::new("customer", "INTEGER"),
+      ]),
+    ]),
+    foreign_keys: [],
+  }
+  let question = "Give titles requested by Cedar Choir."
+  assert_true(
+    @planner.plan_prompt_for(mixed, question).contains(
+      "in this schema is Renter.",
+    ),
+  )
+  let ambiguous : @lib.Catalog = {
+    ..mixed,
+    schema: @lib.Schema::new(
+      mixed.schema.tables +
+      [@lib.Table::new("payments", [@lib.Column::new("customer", "TEXT")])],
+    ),
+  }
+  assert_false(
+    @planner.plan_prompt_for(ambiguous, question).contains(
+      "matching text role in this schema",
+    ),
+  )
+}
+
+///|
+async test "named checkout carries its role through a retry and returns only titles" {
+  let db = "eval/borrower-dev/scores.db"
+  let question = "Give the score titles requested by Cedar Choir."
+  let valid =
+    #|{"plan":{"from_table":"checkouts","select":[["Column",{"table":"scores","column":"title"}]],"joins":[{"table":"scores","via":"checkouts"}],"filters":[["Compare",{"table":"checkouts","column":"renter"},"Equal",["Text","Cedar Choir"]]],"group_by":[],"order_by":[]}}
+  let mut calls = 0
+  let result = @planner.ask(
+    db,
+    question,
+    (system, input) => {
+      assert_true(
+        system.contains("matching text role in this schema is renter."),
+      )
+      assert_true(input.contains(question))
+      calls += 1
+      if calls == 1 {
+        "{}"
+      } else {
+        valid
+      }
+    },
+    retry_invalid=true,
+  )
+  guard result is Queried(evidence) else { fail("expected a score lookup") }
+  assert_eq(calls, 2)
+  assert_eq(evidence.params, [Text("Cedar Choir")])
+  assert_eq(evidence.result.columns, ["title"])
+  assert_eq(evidence.result.rows.length(), 3)
+  assert_eq(
+    evidence.result.rows.filter(row => row == [Text("Fir Waltz")]).length(),
+    2,
+  )
+  assert_true(evidence.result.rows.contains([Text("Rain Canon")]))
+}

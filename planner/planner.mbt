@@ -42,7 +42,10 @@ pub async fn ask(
     is Some(reason) {
     return NoAnswer(reason)
   }
-  let reply = generate(plan_prompt, model_input(catalog, question))
+  let reply = generate(
+    plan_prompt_for(catalog, question),
+    model_input(catalog, question),
+  )
   if retry_invalid &&
     plan_retry_request(catalog, question, reply) is Some((system, input)) {
     let replacement = generate(system, input)

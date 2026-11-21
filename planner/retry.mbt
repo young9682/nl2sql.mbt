@@ -26,7 +26,7 @@ pub fn plan_retry_request(
     edges.push({ "via": target, "table": source })
   }
   let input = "Previous error: \{reason}\nTables:\n\{tables.join("\n")}\nDeclared join steps: \{Json::array(edges).stringify()}\nQuestion: \{question}"
-  Some((retry_prompt, input))
+  Some((with_party_examples(retry_prompt, catalog, question), input))
 }
 
 ///|

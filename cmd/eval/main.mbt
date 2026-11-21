@@ -185,7 +185,11 @@ async fn compare_case(
           is Some(reason) {
           return { ..grade_abstention(question, reason), answerability_reply, }
         }
-        let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
+        let prompt = if structured {
+          @planner.plan_prompt_for(catalog, question.question)
+        } else {
+          sql_prompt
+        }
         let first = (model.generate)(prompt, input)
         if structured &&
           @planner.plan_retry_request(catalog, question.question, first)

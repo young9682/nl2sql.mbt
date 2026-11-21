@@ -119,6 +119,13 @@ pub fn openai_text_filter_model(
 }
 
 ///|
+fn is_text_column(column : @lib.Column) -> Bool {
+  let ty = column.col_type.to_upper()
+  !ty.contains("INT") &&
+  (ty.contains("CHAR") || ty.contains("TEXT") || ty.contains("CLOB"))
+}
+
+///|
 /// Returns the plan to execute and the raw review if a model call was made.
 /// Existing predicates, grouped queries, joins and refusals skip this review.
 pub async fn review_text_filter(
@@ -149,13 +156,7 @@ pub async fn review_text_filter(
   ignore(@plan.compile_reply(catalog, reply)) catch {
     _ => return original
   }
-  let columns = schema.columns
-    .filter(column => {
-      let ty = column.col_type.to_upper()
-      !ty.contains("INT") &&
-      (ty.contains("CHAR") || ty.contains("TEXT") || ty.contains("CLOB"))
-    })
-    .map(column => column.name)
+  let columns = schema.columns.filter(is_text_column).map(column => column.name)
   if columns.is_empty() {
     return original
   }
