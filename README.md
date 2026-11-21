@@ -66,7 +66,20 @@ python3 examples/inventory-report/verify.py
 
 On Windows, use `python` if that is your Python 3 command. The verifier builds the inventory module in a temporary workspace against the current `nl2sql` revision. Its three tests cover typed results, write rejection, and truncation. It runs the sample with model settings cleared, checks for `partial` with an integer quantity of 5 for `Tea` in `east`, and verifies that the SQLite copy stays byte-for-byte identical. [Module and workspace setup](examples/inventory-report/README.md)
 
-A public fork of the existing `mizchi/sqlc_gen_moonbit` project imports `young9682/nl2sql/planner` in its Native SQLite user-directory example. The original account workflow creates and updates users, deletes Bob, and writes the resulting database file. The audit returns only Alice Smith (ID 1) and verifies the file's SHA-256 is identical before and after the query. The Windows reproduction uses a fixed model reply and pins the `nl2sql` revision to `ab67b85`. [Fork source and reproduction steps](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/NL2SQL-AUDIT.md) · [Recorded JSON](https://github.com/young9682/sqlc_gen_moonbit/blob/a785fcfdedc2c0554ed5bfef5248f5d024c5ab8a/examples/sqlite_native/audit-result.json)
+### User-directory audit in sqlc_gen_moonbit
+
+The public fork of `mizchi/sqlc_gen_moonbit` runs the original Native SQLite workflow to create Alice and Bob, update Alice, and delete Bob. It then audits the resulting database through the public `young9682/nl2sql/planner` API at revision `af0c79c7f516dfb9da2e8c08d0a7cc67254c8b2d`. The audit binds the SQLite integer `1`, returns only Alice Smith (ID 1), and verifies that the database SHA-256 matches before and after the query.
+
+Reproduce on Windows with PowerShell 7.4 or later, Git, MoonBit compiler `v0.10.20+65efd5b93`, MSVC, and the Windows SDK. Set `-SqliteSdk` to a directory containing `include/sqlite3.h`, `lib/sqlite3.lib`, and `bin/sqlite3.dll`. The verifier uses a fixed model reply and needs no API key.
+
+```powershell
+git clone https://github.com/young9682/sqlc_gen_moonbit.git
+cd sqlc_gen_moonbit
+git checkout --detach d4c44ca0105d4c176a3875628669e74dddcad230
+./examples/sqlite_native/verify-nl2sql.ps1 -SqliteSdk 'C:\path\to\environment\Library'
+```
+
+The verifier prints the paths to both reports. `audit-result.json` records the executed SQL, bindings, and typed rows. `audit-verification.json` records the dependency revision and both checksums. [Fork audit notes](https://github.com/young9682/sqlc_gen_moonbit/blob/d4c44ca0105d4c176a3875628669e74dddcad230/examples/sqlite_native/NL2SQL-AUDIT.md) · [Recorded query and rows](https://github.com/young9682/sqlc_gen_moonbit/blob/d4c44ca0105d4c176a3875628669e74dddcad230/examples/sqlite_native/audit-result.json) · [Recorded revision and checksums](https://github.com/young9682/sqlc_gen_moonbit/blob/d4c44ca0105d4c176a3875628669e74dddcad230/examples/sqlite_native/audit-verification.json)
 
 ## Compare structured planning with direct SQL
 
