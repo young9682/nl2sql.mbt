@@ -163,7 +163,8 @@ async fn compare_case(
       try {
         let assessment = (model.assess)(catalog, question.question)
         answerability_reply = Some(assessment)
-        if @planner.parse_answerability(assessment) is Some(reason) {
+        if @planner.parse_answerability(assessment, catalog=Some(catalog))
+          is Some(reason) {
           return { ..grade_abstention(question, reason), answerability_reply, }
         }
         let prompt = if structured { @planner.plan_prompt } else { sql_prompt }

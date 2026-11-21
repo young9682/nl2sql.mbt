@@ -18,7 +18,7 @@ pub fn openai_answerability_model(String, String, api_key? : String, request_tim
 
 pub fn openai_model(String, String, api_key? : String, request_timeout_ms? : Int32) -> async (String, String) -> String
 
-pub fn parse_answerability(String) -> String? raise PlannerError
+pub fn parse_answerability(String, catalog? : @nl2sql.Catalog?) -> String? raise PlannerError
 
 pub let plan_prompt : String
 

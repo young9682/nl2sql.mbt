@@ -140,3 +140,20 @@ The shared check refused the same four questions on both paths and allowed all 1
 On the valid North Annex query, direct SQL returned the expected zero rows and the structured plan used an invalid join. Both paths omitted the painting filter in the duplicate-values question. Each run recorded zero provider and execution failures. The two complete reports were byte-identical. [Raw assessment and generation replies](results/qwen2.5-coder-1.5b-museum-holdout.json)
 
 To reproduce these numbers, use evaluator revision `591625c409c744ba7af7bd7d150aa774ae4feb96` and the bundled `eval/holdout/museum.db` snapshot. Its SHA-256 is `562f9a84aa08da75fcabc1dc8b7261a6c988be1b014875a7361ce26211d39c5d`. Start the pinned local server and use `--live --holdout`. The corresponding fixture replay uses `--fixture --holdout`. [Server and evaluator commands](../README.md#reproduce-the-comparison)
+
+## Catalog-verified museum reevaluation
+
+The original check missed four absent facts in the museum catalog. The model used dates unrelated to loan deadlines, invented birth-country and security-assignment fields, and interpreted a returned loan as evidence of restoration. The revised first check asks about every fact needed by the question. After an initial approval, a second model call returns either `{"missing_column":null}` or an existing table name paired with a proposed missing column. The evaluator checks the claim against the SQLite catalog. If the named column exists anywhere in the schema, the query can proceed even if its filters match no rows.
+
+We selected the second check on 24 development examples drawn from food cooperatives, observatories and sports leagues. It correctly refused 9/9 unanswerable questions. Of the 15 answerable questions it approved 11, falsely refused three and produced one invalid reply. Two false refusals came from the initial check and one from the second check. The museum set was used for reevaluation only after the implementation was fixed. [Development cases](schema-evidence-dev.json) · [Per-case decisions](results/qwen2.5-coder-1.5b-schema-evidence-development.json)
+
+| Museum metric | Structured plan, original → revised | Direct SQL, original → revised |
+| --- | ---: | ---: |
+| Correct abstentions | 4/8 → 8/8 | 4/8 → 8/8 |
+| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Correct results on answerable questions | 3/12 → 3/12 | 6/12 → 6/12 |
+| Invalid output | 7/20 → 4/20 | 2/20 → 0/20 |
+
+The two live runs used the pinned local weights, runtime, JSON grammar and museum snapshot from the original evaluation. Both produced byte-identical reports and recorded zero provider or execution failures. For all 12 answerable questions the generation replies matched the original replies on each path. Direct SQL returned zero rows for North Annex and the structured plan still failed join validation. Abstention scores measure the decision itself. The refusal for the Spanish audio guide gave an unrelated reason. [Original replies](results/qwen2.5-coder-1.5b-museum-holdout.json) · [Revised replies](results/qwen2.5-coder-1.5b-museum-schema-evidence.json)
+
+To reproduce the revised scores, use evaluator revision `9a40d0b0bbf7d6c87d07ca7efa8389f13e5881f9`, start the pinned local server, and run `moon run --quiet --target native cmd/eval -- --live --holdout` from the repository root. [Server setup and evaluator commands](../README.md#reproduce-the-comparison)

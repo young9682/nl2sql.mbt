@@ -87,8 +87,10 @@ async test "both live paths keep the assessment and skip generation on a refusal
     fixture_sql: Json::null(),
   }
   let input = @planner.model_input(catalog, question.question)
-  let refusal =
-    #|{"no_answer":"The database does not record logins."}
+  let assessment : Json = {
+    "schema_review": "{\"missing_column\":[\"users\",\"first_login_at\"]}",
+  }
+  let refusal = assessment.stringify()
   for structured in [true, false] {
     let result = compare_case(
       database,

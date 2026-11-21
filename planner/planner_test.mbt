@@ -2,6 +2,12 @@
 let fixture = "sqlite/fixtures/orders.db"
 
 ///|
+fn schema_review_reply(reply : String) -> String {
+  let assessment : Json = { "schema_review": Json::string(reply) }
+  assessment.stringify()
+}
+
+///|
 async test "an optional assessment can decline without asking for a plan" {
   let result = @planner.ask(
     fixture,
@@ -17,9 +23,25 @@ async test "an optional assessment can decline without asking for a plan" {
 
 ///|
 test "an assessment must make one unambiguous decision" {
+  assert_eq(@planner.parse_answerability("{\"supported\":true}"), None)
+  assert_eq(@planner.parse_answerability("{\"missing_fact\":null}"), None)
+  assert_eq(
+    @planner.parse_answerability(
+      "{\"missing_fact\":\"Warning levels are absent.\"}",
+    ),
+    Some("Warning levels are absent."),
+  )
   let malformed = [
-    "{}", "{\"supported\":false}", "{\"no_answer\":\" \"}", "{\"supported\":true,\"no_answer\":\"missing data\"}",
+    "{}",
+    "{\"supported\":false}",
+    "{\"no_answer\":\" \"}",
+    "{\"supported\":true,\"no_answer\":\"missing data\"}",
     "{\"supported\":true,\"supported\":false}",
+    "{\"missing_fact\":42}",
+    "{\"missing_fact\":\" \"}",
+    "{\"supported\":true,\"missing_fact\":\"missing data\"}",
+    schema_review_reply("{\"no_answer\":\"A row value is missing.\"}"),
+    schema_review_reply("{\"missing_column\":[\"orders\"]}"),
   ]
   for reply in malformed {
     let rejected = try {
@@ -30,6 +52,93 @@ test "an assessment must make one unambiguous decision" {
       error => raise error
     }
     assert_true(rejected)
+  }
+}
+
+///|
+test "schema review verifies the table and column against the full catalog" {
+  let catalog = @sqlite.read_catalog(fixture)
+  let absent = schema_review_reply(
+    "{\"missing_column\":[\"ORDERS\",\"dispatch_date\"]}",
+  )
+  assert_eq(
+    @planner.parse_answerability(absent, catalog=Some(catalog)),
+    Some("The schema has no column for ORDERS.dispatch_date."),
+  )
+  assert_eq(@planner.parse_answerability(absent), None)
+  for
+    raw in [
+      "{\"missing_column\":null}", "{\"missing_column\":[\"orders\",\"AMOUNT\"]}",
+      "{\"missing_column\":[\"orders\",\"name\"]}", "{\"missing_column\":[\"unlisted_table\",\"dispatch_date\"]}",
+      "{\"missing_column\":[\"orders\",\"8102\"]}",
+    ] {
+    assert_eq(
+      @planner.parse_answerability(
+        schema_review_reply(raw),
+        catalog=Some(catalog),
+      ),
+      None,
+    )
+  }
+}
+
+///|
+async test "schema review preserves an initial refusal and lets an empty query run" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
+  @async.with_task_group() <| group => {
+    let initial_refusal = "{\"no_answer\":\"The schema has no logins.\"}"
+    let review_refusal = "{\"missing_column\":[\"orders\",\"contract_rate\"]}"
+    group.spawn_bg(() => {
+      for
+        (review, reply) in [
+          (false, initial_refusal),
+          (false, "{\"supported\":true}"),
+          (true, review_refusal),
+          (false, "{\"supported\":true}"),
+          (true, "{\"missing_column\":[\"orders\",\"amount\"]}"),
+        ] {
+        let (connection, _) = server.accept()
+        defer connection.close()
+        ignore(connection.read_request())
+        let request = @json.parse(connection.read_all().text())
+        guard request
+          is { "messages": [{ "content": String(prompt), .. }, ..], .. } else {
+          fail("expected a system prompt")
+        }
+        assert_eq(prompt.contains("exactly one key missing_column"), review)
+        let response : Json = {
+          "choices": [{ "message": { "content": Json::string(reply) } }],
+        }
+        connection.send_response(200, "OK")
+        connection.write(response.stringify())
+        connection.end_response()
+      }
+    })
+    let assess = @planner.openai_answerability_model(
+      "http://\{server.addr}/v1/chat/completions",
+      "test-model",
+      request_timeout_ms=2000,
+    )
+    let catalog = @sqlite.read_catalog(fixture)
+    assert_eq(
+      assess(catalog, "When did each user first log in?"),
+      initial_refusal,
+    )
+    assert_eq(
+      assess(catalog, "What were the contract rates?"),
+      schema_review_reply(review_refusal),
+    )
+    let empty_plan =
+      #|{"plan":{"from_table":"orders","select":[["Column",{"table":"orders","column":"id"}]],"joins":[],"filters":[["Compare",{"table":"orders","column":"amount"},"Greater",["Real",1000]]],"group_by":[],"order_by":[]}}
+    let empty = @planner.ask(
+      fixture,
+      "List order IDs for amounts over 1000.",
+      (_, _) => empty_plan,
+      assess=Some(assess),
+    )
+    guard empty is Queried(evidence) else { fail("expected an executed query") }
+    assert_true(evidence.result.rows.is_empty())
   }
 }
 
