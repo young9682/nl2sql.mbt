@@ -29,6 +29,7 @@ struct Case {
 
 ///|
 struct LiveModel {
+  review_filter : async (String) -> String
   assess : async (@lib.Catalog, String) -> String
   generate : async (String, String) -> String
 }
@@ -67,6 +68,11 @@ async fn main {
   let key = @env.get_env_var("NL2SQL_API_KEY").unwrap_or("")
   let live = if mode == "live" {
     Some({
+      review_filter: @planner.openai_text_filter_model(
+        endpoint,
+        name,
+        api_key=key,
+      ),
       assess: @planner.openai_answerability_model(endpoint, name, api_key=key),
       generate: @planner.openai_model(endpoint, name, api_key=key),
     })
@@ -160,6 +166,8 @@ async fn compare_case(
 ) -> Observation {
   let mut answerability_reply = None
   let mut rejected_plan_reply = None
+  let mut generated_reply = None
+  let mut filter_review_reply = None
   let reply = match live {
     None =>
       (if structured { question.fixture_plan } else { question.fixture_sql }).stringify()
@@ -178,6 +186,16 @@ async fn compare_case(
           is Some((instructions, context)) {
           rejected_plan_reply = Some(first)
           (model.generate)(instructions, context)
+        } else if structured {
+          generated_reply = Some(first)
+          let (effective, review) = @planner.review_text_filter(
+            catalog,
+            question.question,
+            first,
+            model.review_filter,
+          )
+          filter_review_reply = review
+          effective
         } else {
           first
         }
@@ -192,7 +210,12 @@ async fn compare_case(
               failure(ProviderFailure, reason)
             _ => failure(ProviderFailure, "model request failed")
           }
-          return { ..observation, answerability_reply, rejected_plan_reply, }
+          return {
+            ..observation,
+            answerability_reply,
+            rejected_plan_reply,
+            model_reply: generated_reply,
+          }
         }
       }
   }
@@ -243,7 +266,8 @@ async fn compare_case(
       ..observation,
       answerability_reply,
       rejected_plan_reply,
-      model_reply: Some(reply),
+      model_reply: Some(generated_reply.unwrap_or(reply)),
+      filter_review_reply,
     }
   } else {
     observation

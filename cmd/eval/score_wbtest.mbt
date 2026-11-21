@@ -49,6 +49,7 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
   let support =
     #|{"supported":true}
   let live : LiveModel = {
+    review_filter: _ => fail("unexpected filter review"),
     assess: (_, _) => support,
     generate: (_, _) => reply,
   }
@@ -100,6 +101,7 @@ async test "both live paths keep the assessment and skip generation on a refusal
       catalog,
       input,
       Some({
+        review_filter: _ => fail("unexpected filter review"),
         assess: (_, _) => refusal,
         generate: (_, _) => fail("unexpected generation after refusal"),
       }),
