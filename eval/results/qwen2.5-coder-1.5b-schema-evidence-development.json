@@ -1,0 +1,183 @@
+{
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "questions": "eval/schema-evidence-dev.json",
+  "answerable_questions": 15,
+  "unanswerable_questions": 9,
+  "implementation_revision": "9a40d0b0bbf7d6c87d07ca7efa8389f13e5881f9",
+  "summary": {
+    "correct_abstentions": 9,
+    "false_abstentions": 3,
+    "correct_approvals": 11,
+    "invalid_replies": 1
+  },
+  "cases": [
+    {
+      "id": "cooperative-depot-id",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"depots\",\"label\"]}"
+    },
+    {
+      "id": "cooperative-depot-label",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"inventory\",\"item_id\"]}"
+    },
+    {
+      "id": "cooperative-zero-units",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"inventory\",\"lot_code\"]}"
+    },
+    {
+      "id": "cooperative-quoted-diet",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"items\",\"brand\"]}"
+    },
+    {
+      "id": "cooperative-dispatch-range",
+      "expected": "supported",
+      "initial_reply": "{\"no_answer\":\"The 'carrier_id' column is missing in the 'shipments' table, which is required to filter shipments by carrier. Additionally, the 'depot_id' column is missing in the 'shipments' table, which is required to filter shipments by depot. The 'dispatched_on' column is missing in the 'shipments' table, which is required to filter shipments by dispatch date. The 'parcel_count' column is missing in the 'shipments' table, which is required to filter shipments by parcel count. The 'item_id' column is missing in the 'shipments' table, which is required to filter shipments by item. The 'depot_id' column is missing in the 'inventory' table, which is required to filter inventory by depot. The 'label' column is missing in the 'depots' table, which is required to filter depots by label. The 'label' column is missing in the 'carriers' table, which is required to filter carriers by label. The 'label' column is missing in the 'items' table, which is required to filter items by label. The 'label' column is missing in the 'shipments' table, which is required to filter shipments by label. The 'label' column is missing in the 'inventory' table, which is required to filter inventory by label. The 'label' column is missing in the 'depots' table, which is required to filter depots by label. The 'label' column is missing in the 'carriers' table, which is required to filter carriers by label. The 'label' column is missing in the 'items' table, which is required to filter items by label. The 'label' column is missing in the 'shipments' table, which is required to filter shipments by label. The 'label' column is missing in the 'inventory' table, which is required to filter inventory by label. The 'label' column is missing in the 'depots' table, which is required to filter depots by label. The 'label' column is missing in the 'carriers' table, which is required to filter carriers by label. The 'label' column is missing in the 'items' table, which is required to filter items by label. The 'label' column is missing in the 'shipments' table, which is required to filter shipments by label. The 'label' column is missing in the 'inventory' table, which is required to",
+      "decision": "invalid",
+      "review_reply": null
+    },
+    {
+      "id": "cooperative-arrival-date",
+      "expected": "no_answer",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "no_answer",
+      "review_reply": "{\"missing_column\":[\"shipments\",\"arrival_date\"]}"
+    },
+    {
+      "id": "cooperative-purchase-price",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"The purchase price per item is missing.\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "cooperative-temperature",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"数据库没有记录储藏温度的信息。\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "observatory-null-note",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"sensor_readings\",\"note\"]}"
+    },
+    {
+      "id": "observatory-target-literal",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"observations\",\"started_at\"]}"
+    },
+    {
+      "id": "observatory-aperture",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"telescopes\",\"code\"]}"
+    },
+    {
+      "id": "observatory-completion-count",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "no_answer",
+      "review_reply": "{\"missing_column\":[\"telescopes\",\"end_time\"]}"
+    },
+    {
+      "id": "observatory-filter-literal",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"sensor_readings\",\"measured_flux\"]}"
+    },
+    {
+      "id": "observatory-humidity",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"The humidity data is missing.\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "observatory-reviewer",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"数据库中没有记录观测的审批人姓名。\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "observatory-scheduled-date",
+      "expected": "no_answer",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "no_answer",
+      "review_reply": "{\"missing_column\":[\"observations\",\"scheduled_start_time\"]}"
+    },
+    {
+      "id": "league-away-team",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"roster\",\"team_id\"]}"
+    },
+    {
+      "id": "league-captain-role",
+      "expected": "supported",
+      "initial_reply": "{\"no_answer\":\"The 'roster' table does not contain information about the current roster members of the team 'Northbridge'.\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "league-early-departures",
+      "expected": "supported",
+      "initial_reply": "{\"no_answer\":\"数据库中没有记录离队的成员。\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "league-home-scores",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"matches\",\"home_score\"]}"
+    },
+    {
+      "id": "league-future-date",
+      "expected": "supported",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "supported",
+      "review_reply": "{\"missing_column\":[\"matches\",\"venue\"]}"
+    },
+    {
+      "id": "league-appearances",
+      "expected": "no_answer",
+      "initial_reply": "{\"supported\":true}",
+      "decision": "no_answer",
+      "review_reply": "{\"missing_column\":[\"roster\",\"player\"]}"
+    },
+    {
+      "id": "league-attendance",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"数据库没有记录门票的销售信息。\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    },
+    {
+      "id": "league-sponsorship",
+      "expected": "no_answer",
+      "initial_reply": "{\"no_answer\":\"The sponsorship money is not provided in the given tables.\"}",
+      "decision": "no_answer",
+      "review_reply": null
+    }
+  ]
+}

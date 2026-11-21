@@ -91,19 +91,19 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-The holdout uses a separate SQLite museum catalog and 20 questions fixed before inference. Both paths use the same local Qwen2.5-Coder-1.5B-Instruct model, answerability check, and generation settings from the development-set comparison. The holdout was kept out of prompt tuning. [Questions and expected results](eval/holdout/questions.json) · [Museum schema and sample data](eval/holdout/museum.sql)
+The museum holdout contains 12 answerable questions and 8 that require facts absent from its SQLite catalog. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct model. We selected the second check on 24 separate development examples and fixed it before reevaluating the holdout. [Museum questions](eval/holdout/questions.json) · [Development examples](eval/schema-evidence-dev.json)
 
-| Metric | Structured query plan | Direct SQL |
+| Museum metric | Structured plan, original → revised | Direct SQL, original → revised |
 | --- | ---: | ---: |
-| Correct abstention on unanswerable questions | 4/8 (50%) | 4/8 (50%) |
-| False abstention on answerable questions | 0/12 (0%) | 0/12 (0%) |
-| Correct results on answerable questions | 3/12 (25%) | 6/12 (50%) |
+| Correct abstentions | 4/8 → 8/8 | 4/8 → 8/8 |
+| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Correct results on answerable questions | 3/12 → 3/12 | 6/12 → 6/12 |
 
-Both paths missed the same four refusals. For example, both tried to answer which loans were overdue even though the catalog records no due dates. Direct SQL correctly returned an empty result for the North Annex question, while the structured plan chose an invalid join. Two local runs produced byte-identical reports. [Holdout analysis](eval/live-model-report.md#independent-museum-holdout) · [Raw replies and results](eval/results/qwen2.5-coder-1.5b-museum-holdout.json)
+The revised check preserves the distinction between a missing column and a query that returns no rows. For North Annex, both paths proceeded to generation. Direct SQL returned the expected empty result and the structured plan failed join validation. Two local runs produced byte-identical reports. [Analysis and raw results](eval/live-model-report.md#catalog-verified-museum-reevaluation) · [Reproduction commands](#reproduce-the-comparison)
 
 ### Development set
 
-The live comparison runs the same schema-only answerability check for both paths. It supplies the question and table and column names to Qwen2.5-Coder 1.5B. For supported questions, each path uses its existing prompt and the full catalog. The before and after runs use the same eight questions, SQLite snapshot, model, and JSON grammar.
+The original development-set comparison used the same schema-only answerability check for both paths. It supplied the question and table and column names to Qwen2.5-Coder 1.5B. For supported questions, each path used its existing prompt and the full catalog. The before and after runs used the same eight questions, SQLite snapshot, model, and JSON grammar.
 
 | Metric | Structured plan before | Structured plan after | Direct SQL before | Direct SQL after |
 | --- | ---: | ---: | ---: | ---: |
