@@ -390,3 +390,47 @@ moon run --quiet --target native cmd/eval -- --live --category-dev > parcels-liv
 moon run --quiet --target native cmd/eval -- --live --filter-dev > tools-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Named borrowers and title-only results
+
+In the previous museum run, `loaned-work-titles` selected both the loan's artwork ID and the artwork title. It filtered on `borrower IS NULL` even though the question named Hill Library, and returned no rows. Direct SQL already returned the two expected titles. [Previous museum replies and SQL](results/qwen2.5-coder-1.5b-museum-category.json)
+
+### Score checkout development
+
+We fixed eight questions and a sheet-music checkout database at `43d9fb5`. Cedar Choir appears as both renter and lender on different checkouts. A checkout with an unknown renter and a score that was never checked out distinguish a null predicate and a missing join from a named renter lookup. Two scores share the title Fir Waltz but have different IDs. The scorer compares the number of columns, typed values and duplicate rows. [Development questions and reference plans](borrower-dev/questions.json) · [Schema and data](borrower-dev/scores.sql)
+
+The Native planner and the structured evaluator use role-specific examples for English clauses such as “requested by”, “borrowed by” and “supplied by”. The examples show which fields to return when the user asks for a display field, or for IDs as well. When the catalog contains a single recognized text column for that role, the prompt includes its exact name. The same guidance is available on an invalid-plan retry. SQLite still executes the validated model plan with bound parameters. The technique depends on recognized phrasing and catalog column names. [Prompt selection](../planner/named_party.mbt) · [Catalog and retry regression tests](../planner/planner_test.mbt)
+
+| Correct typed results on the eight checkout questions | Previous | Frozen |
+| --- | ---: | ---: |
+| Structured plan | 2/8 | 7/8 |
+| Direct SQL | 3/8 | 3/8 |
+
+For Cedar Choir as renter, the structured query returned Fir Waltz twice and Rain Canon once, each as a single title column. For the same name as lender, it returned Open String and Dawn Chorus. The question asking for both IDs and titles returned two columns, and the ID-only question returned the single ID 14. An unknown renter matched the real null row. The absent named renter produced zero rows with a bound equality. The baseline had passed this last case by coincidence with `score_id IS NULL`. The one remaining structured failure queried every score for “every checkout” and included Silent Fugue, which had never been checked out. [Raw baseline](results/qwen2.5-coder-1.5b-scores-borrower-baseline.json) · [Raw frozen run](results/qwen2.5-coder-1.5b-scores-borrower.json)
+
+### Frozen museum comparison for named borrowers
+
+We froze the planner at `6c31da11d88e5ffde83bd5d4a31ed36726fc3a6e` before reevaluating both paths. We used the same SQLite snapshot, 20 questions, typed-row scorer, local Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, llama.cpp b12503 Vulkan1 runtime and JSON grammar as the previous round, with temperature 0 and seed 42. Two fresh runs produced byte-identical reports. This fixed museum benchmark has been reevaluated across multiple rounds.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed results on answerable questions | 10/12 → 11/12 | 6/12 → 6/12 |
+| Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
+
+For `loaned-work-titles`, SQLite executed the following query with one bound text parameter, `Hill Library`. The result had one column, `title`, and two rows, `Night Market` and `River Loom`. The other 19 structured observations and all 20 direct SQL observations matched the previous report. Neither path had a provider or execution failure. The only remaining structured error is `recent-harbor-requests`. [Frozen replies, executed SQL and rows](results/qwen2.5-coder-1.5b-museum-borrower.json) · [Previous museum results](results/qwen2.5-coder-1.5b-museum-category.json)
+
+```sql
+SELECT "artworks"."title" FROM "loans"
+JOIN "artworks" ON "artworks"."id" = +"loans"."artwork_id"
+WHERE "loans"."borrower" = ?
+```
+
+To reproduce the before and after comparison, use `43d9fb5` for the baseline and `6c31da1` for the frozen planner. Start the pinned server and set the model and endpoint as shown in the README. The fixture command checks the typed rows offline. Each live command generates fresh replies for both paths. [Server setup and environment](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --borrower-dev
+moon run --quiet --target native cmd/eval -- --live --borrower-dev > scores-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```

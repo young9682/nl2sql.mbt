@@ -93,18 +93,18 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-The structured planner returned the correct typed rows for **10/12 (83.3%)** answerable museum questions, up from 9/12. Direct SQL scored **6/12 (50%)**. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We tuned the category review on separate parcel and tool databases and froze it at `e49ce2a` before reevaluating the 20 museum questions twice. Both reports were byte-identical. [Museum questions](eval/holdout/questions.json) · [Raw comparison](eval/results/qwen2.5-coder-1.5b-museum-category.json)
+The structured planner returned the correct typed rows for **11/12 (91.7%)** answerable museum questions, up from 10/12. Direct SQL scored **6/12 (50%)**. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We fixed the implementation at `6c31da1` after tuning on a separate music-score checkout database, then ran the 20 museum questions twice. The two reports were byte-identical. [Museum questions](eval/holdout/questions.json) · [Raw museum comparison](eval/results/qwen2.5-coder-1.5b-museum-borrower.json)
 
 | Museum metric | Structured plan, before → after | Direct SQL, before → after |
 | --- | ---: | ---: |
-| Correct results on answerable questions | 9/12 → 10/12 | 6/12 → 6/12 |
+| Correct results on answerable questions | 10/12 → 11/12 | 6/12 → 6/12 |
 | Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
 | False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
 | Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
 
-For the insured values of paintings, the planner previously returned values for all eight artworks. It now filters on `medium = ?` with the bound value `painting` and returns **34000 twice**, once for each painting. This was the only museum result that changed. Two structured queries still returned wrong rows, for loaned works and recent requests. [Category filtering report and reproduction](eval/live-model-report.md#category-filtering-with-duplicate-values) · [Earlier Ink Routes fix](eval/live-model-report.md#name-and-date-column-binding)
+For artworks requested by Hill Library, the old structured plan tested `borrower IS NULL`, selected an extra ID and returned zero rows. The new plan binds `Hill Library` to `loans.borrower = ?` and selects only `artworks.title`. It returns **Night Market** and **River Loom**. This is the only museum observation that changed. The remaining structured error on recent Harbor Museum requests omits the borrower restriction and uses a strict lower date bound. [Named borrower report and reproduction](eval/live-model-report.md#named-borrowers-and-title-only-results) · [Previous category-filter report](eval/live-model-report.md#category-filtering-with-duplicate-values)
 
-On the parcel development set, two tubes and a crate all weigh 420 grams. The tube query returned 420, 420 and 630, preserving both matching 420s and excluding the crate. Structured accuracy rose from 5/8 to 7/8. A question about an absent parcel shape still returned all six rows. [Parcel questions](eval/category-dev/questions.json) · [Raw parcel results](eval/results/qwen2.5-coder-1.5b-parcels-category.json)
+On the score checkout development set, structured accuracy rose from 2/8 to 7/8. Tests distinguish the same organization borrowing or lending, a genuinely unknown renter, an absent named renter, and explicit requests for titles, IDs or both. [Development questions](eval/borrower-dev/questions.json) · [Raw checkout results](eval/results/qwen2.5-coder-1.5b-scores-borrower.json)
 
 ### Development set
 
@@ -143,7 +143,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, `--live --route-dev` for the eight radio questions, `--live --filter-dev` for the eleven tool questions, `--live --binding-dev` for the ten calendar questions, `--live --category-dev` for the eight parcel questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
+In a second PowerShell session at the repository root, run both model paths on the selected question set. For the named borrower comparison, use `--live --borrower-dev` for the eight score-checkout questions and `--live --holdout` for the twenty museum questions. Each command below writes a separate JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -163,6 +163,8 @@ moon run --quiet --target native cmd/eval -- --live --binding-dev > nl2sql-bindi
 if ($LASTEXITCODE -ne 0) { throw 'Calendar development evaluation failed. Inspect nl2sql-binding-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --category-dev > nl2sql-category-dev.json
 if ($LASTEXITCODE -ne 0) { throw 'Parcel development evaluation failed. Inspect nl2sql-category-dev.json.' }
+moon run --quiet --target native cmd/eval -- --live --borrower-dev > nl2sql-borrower-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'Score checkout evaluation failed. Inspect nl2sql-borrower-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```
