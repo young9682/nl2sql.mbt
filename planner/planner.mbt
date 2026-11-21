@@ -34,7 +34,8 @@ pub async fn ask(
 ) -> Answer {
   let catalog = @sqlite.read_catalog(path, timeout_ms~)
   if assess is Some(check) &&
-    parse_answerability(check(catalog, question)) is Some(reason) {
+    parse_answerability(check(catalog, question), catalog=Some(catalog))
+    is Some(reason) {
     return NoAnswer(reason)
   }
   let reply = generate(plan_prompt, model_input(catalog, question))
