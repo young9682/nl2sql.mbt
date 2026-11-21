@@ -71,7 +71,14 @@ async fn run(args : ArrayView[String]) -> Json {
       )
       render_answer(
         question,
-        @planner.ask(path, question, generate, max_rows~, assess=Some(assess)),
+        @planner.ask(
+          path,
+          question,
+          generate,
+          max_rows~,
+          retry_invalid=true,
+          assess=Some(assess),
+        ),
       )
     }
     _ => raise InvalidArguments(usage)

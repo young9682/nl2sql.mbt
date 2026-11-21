@@ -36,21 +36,20 @@ struct LiveModel {
 ///|
 async fn main {
   let args = @env.args()
-  let (mode, holdout) = match args {
-    [_, "--fixture"] => ("fixture", false)
-    [_, "--live"] => ("live", false)
-    [_, "--fixture", "--holdout"] => ("fixture", true)
-    [_, "--live", "--holdout"] => ("live", true)
+  let (mode, db_path, question_path) = match args {
+    [_, "--fixture" | "--live" as flag] => (flag, database, questions_file)
+    [_, "--fixture" | "--live" as flag, "--holdout"] =>
+      (flag, "eval/holdout/museum.db", "eval/holdout/questions.json")
+    [_, "--fixture" | "--live" as flag, "--join-dev"] =>
+      (flag, "eval/join-dev/depot.db", "eval/join-dev/questions.json")
     _ => {
-      println("Usage: moon run cmd/eval -- (--fixture | --live) [--holdout]")
+      println(
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev]",
+      )
       @env.exit(2)
     }
   }
-  let (db_path, question_path) = if holdout {
-    ("eval/holdout/museum.db", "eval/holdout/questions.json")
-  } else {
-    (database, questions_file)
-  }
+  let mode = if mode == "--live" { "live" } else { "fixture" }
   let name = if mode == "live" {
     required_env("NL2SQL_MODEL")
   } else {
@@ -156,6 +155,7 @@ async fn compare_case(
   structured~ : Bool,
 ) -> Observation {
   let mut answerability_reply = None
+  let mut rejected_plan_reply = None
   let reply = match live {
     None =>
       (if structured { question.fixture_plan } else { question.fixture_sql }).stringify()
@@ -168,7 +168,15 @@ async fn compare_case(
           return { ..grade_abstention(question, reason), answerability_reply, }
         }
         let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
-        (model.generate)(prompt, input)
+        let first = (model.generate)(prompt, input)
+        if structured &&
+          @planner.plan_retry_request(catalog, question.question, first)
+          is Some((instructions, context)) {
+          rejected_plan_reply = Some(first)
+          (model.generate)(instructions, context)
+        } else {
+          first
+        }
       } catch {
         error => {
           let observation = match error {
@@ -180,7 +188,7 @@ async fn compare_case(
               failure(ProviderFailure, reason)
             _ => failure(ProviderFailure, "model request failed")
           }
-          return { ..observation, answerability_reply, }
+          return { ..observation, answerability_reply, rejected_plan_reply, }
         }
       }
   }
@@ -226,7 +234,12 @@ async fn compare_case(
     }
   })
   if live is Some(_) {
-    { ..observation, answerability_reply, model_reply: Some(reply), }
+    {
+      ..observation,
+      answerability_reply,
+      rejected_plan_reply,
+      model_reply: Some(reply),
+    }
   } else {
     observation
   }

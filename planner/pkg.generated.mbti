@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub async fn ask(String, String, async (String, String) -> String, max_rows? : Int32, timeout_ms? : Int32, assess? : (async (@nl2sql.Catalog, String) -> String)?) -> Answer
+pub async fn ask(String, String, async (String, String) -> String, max_rows? : Int32, timeout_ms? : Int32, retry_invalid? : Bool, assess? : (async (@nl2sql.Catalog, String) -> String)?) -> Answer
 
 pub fn execute_reply(String, @nl2sql.Catalog, String, max_rows? : Int32, timeout_ms? : Int32) -> Answer raise
 
@@ -21,6 +21,8 @@ pub fn openai_model(String, String, api_key? : String, request_timeout_ms? : Int
 pub fn parse_answerability(String, catalog? : @nl2sql.Catalog?) -> String? raise PlannerError
 
 pub let plan_prompt : String
+
+pub fn plan_retry_request(@nl2sql.Catalog, String, String) -> (String, String)?
 
 // Errors
 #derive(@debug.Debug)

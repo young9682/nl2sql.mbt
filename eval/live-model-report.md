@@ -157,3 +157,40 @@ We selected the second check on 24 development examples drawn from food cooperat
 The two live runs used the pinned local weights, runtime, JSON grammar and museum snapshot from the original evaluation. Both produced byte-identical reports and recorded zero provider or execution failures. For all 12 answerable questions the generation replies matched the original replies on each path. Direct SQL returned zero rows for North Annex and the structured plan still failed join validation. Abstention scores measure the decision itself. The refusal for the Spanish audio guide gave an unrelated reason. [Original replies](results/qwen2.5-coder-1.5b-museum-holdout.json) · [Revised replies](results/qwen2.5-coder-1.5b-museum-schema-evidence.json)
 
 To reproduce the revised scores, use evaluator revision `9a40d0b0bbf7d6c87d07ca7efa8389f13e5881f9`, start the pinned local server, and run `moon run --quiet --target native cmd/eval -- --live --holdout` from the repository root. [Server setup and evaluator commands](../README.md#reproduce-the-comparison)
+
+## JOIN generation on the museum holdout
+
+Four structured replies in the catalog-verified baseline failed before SQLite executed a query. Two failed foreign-key validation and two failed plan decoding. [Baseline replies and validation errors](results/qwen2.5-coder-1.5b-museum-schema-evidence.json)
+
+| Museum question ID | Why the first plan failed | What the question required |
+| --- | --- | --- |
+| `ground-floor-galleries` | The plan added exhibitions and tried to join artworks through exhibitions. Those tables share no direct foreign key. | Filter galleries by floor and select the gallery name. All columns are on one table. |
+| `works-after-year` | The plan used column names for `via`, a tagged projection for a grouping key, and an array for ordering. It also filtered exhibition dates. | Filter artworks by acquisition year and sort their titles. |
+| `coverage-by-medium` | The grouping key used the tagged select syntax. The plan also included a superfluous join to galleries. | Group artworks by medium and sum their insured values, using a plain column reference for the grouping key. |
+| `north-annex-empty` | The plan tried to reach galleries through an undeclared artworks–exhibitions edge and filtered for a null gallery name. | Join artworks directly to galleries and compare the gallery name to North Annex. The expected result is empty. |
+
+### Development and selection
+
+We fixed nine new warehouse questions with their expected typed rows at `bdd9680`. The depot database includes an unassigned crate, a bay without crates, multiple scans and shifts, and a two-hop path through bays. We compared first-pass prompt changes and one-retry variants on this set. We selected a bounded retry that improved row accuracy, reduced invalid plans and preserved every previously valid first reply. The Native live CLI enables the retry. Library callers opt in with `retry_invalid=true`. The repair request contains the compiler error, table columns and declared foreign-key table pairs in both directions. The same compiler validates the replacement before execution. [Questions and reference queries](join-dev/questions.json) · [Depot schema and rows](join-dev/depot.sql)
+
+On the depot set, structured row accuracy rose from 2/9 to 4/9 and invalid output fell from 3/9 to 1/9. The retry corrected the west-zone projection and the join for crates in bay A17. The two-hop Red crew query still chose an invalid edge. Three answerable questions were refused before generation. The empty-bay case matched the expected empty rows even though its first plan filtered scan readers instead of bay codes. The score measures rows on the snapshot. [Depot live replies](results/qwen2.5-coder-1.5b-depot-join-retry.json)
+
+The implementation was frozen at `07b1a2ed34c8cd6c676ce880abc6e04c3b7b4def` before either live path was rerun on the museum database. The two paths used the same Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, llama.cpp b12503 Vulkan server, JSON grammar, temperature 0 and seed 42. Both used the previously published assessment and first-generation prompts, question order, snapshot and row scorer. The structured path could make one extra model request per compile failure.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed results on answerable questions | 3/12 → 6/12 | 6/12 → 6/12 |
+| Invalid output | 4/20 → 1/20 | 0/20 → 0/20 |
+| Correct abstentions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
+
+Exactly four structured plans triggered a second generation call. Galleries on floor 1, artworks acquired from 2022 onward and total insured value per medium all returned the expected rows using a single table. North Annex still failed validation. Its replacement correctly bound the gallery name but tried to join loans to galleries without a declared relationship. Direct SQL used the necessary artworks-to-galleries join and returned zero rows. Five other structured plans compiled and returned incorrect rows, so the retry never ran for them.
+
+All 20 direct-SQL observations, answerability decisions and first structured replies matched the baseline, including the four rejected replies preserved under `rejected_plan_reply`. Two complete museum reruns produced byte-identical reports. Both paths recorded zero provider and execution failures. Abstention scores grade the decision, so the previously documented inaccurate reason for the Spanish audio guide still counts as a correct refusal. [Baseline report](results/qwen2.5-coder-1.5b-museum-schema-evidence.json) · [Reevaluated plans, SQL, bindings and rows](results/qwen2.5-coder-1.5b-museum-join-retry.json)
+
+To reproduce, use revision `07b1a2e` and the pinned local server. The following commands run both paths for each set. To reproduce the pre-retry depot baseline, use revision `bdd9680` with the first command. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --live --join-dev
+moon run --quiet --target native cmd/eval -- --live --holdout
+```

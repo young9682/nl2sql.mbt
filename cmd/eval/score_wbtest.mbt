@@ -63,6 +63,7 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
   assert_true(rejected.status == InvalidOutput)
   assert_eq(rejected.answerability_reply, Some(support))
   assert_eq(rejected.model_reply, Some(reply))
+  assert_eq(rejected.rejected_plan_reply, Some(reply))
   let fixture = compare_case(
     database,
     question,
@@ -73,6 +74,7 @@ async test "evaluation keeps the raw live reply when it rejects model output" {
   )
   assert_true(fixture.status == CorrectRows)
   assert_eq(fixture.model_reply, None)
+  assert_eq(fixture.rejected_plan_reply, None)
 }
 
 ///|

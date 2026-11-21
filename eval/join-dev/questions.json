@@ -1,0 +1,74 @@
+[
+  {
+    "id": "west-bays",
+    "question": "列出西区（west）的货位代码。",
+    "ordered": false,
+    "expected_rows": [[["Text", "A17"]], [["Text", "C14"]]],
+    "fixture_plan": {"plan": {"from_table": "bays", "select": [["Column", {"table": "bays", "column": "code"}]], "joins": [], "filters": [["Compare", {"table": "bays", "column": "zone"}, "Equal", ["Text", "west"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT code FROM bays WHERE zone='west'"}
+  },
+  {
+    "id": "heavy-tags",
+    "question": "Give the tags of crates weighing at least 18, in tag order.",
+    "ordered": true,
+    "expected_rows": [[["Text", "ash"]], [["Text", "cedar"]], [["Text", "elm"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}]], "joins": [], "filters": [["Compare", {"table": "crates", "column": "mass"}, "GreaterEqual", ["Integer", "18"]]], "group_by": [], "order_by": [{"position": 1, "descending": false}]}},
+    "fixture_sql": {"sql": "SELECT tag FROM crates WHERE mass>=18 ORDER BY tag"}
+  },
+  {
+    "id": "mass-frequency",
+    "question": "For each recorded crate mass, give the mass and how many crates have it.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "9"], ["Integer", "1"]], [["Integer", "18"], ["Integer", "2"]], [["Integer", "24"], ["Integer", "1"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "mass"}], "CountAll"], "joins": [], "filters": [], "group_by": [{"table": "crates", "column": "mass"}], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass, COUNT(*) FROM crates GROUP BY mass"}
+  },
+  {
+    "id": "unassigned",
+    "question": "Which crate tags have no assigned bay?",
+    "ordered": false,
+    "expected_rows": [[["Text", "oak"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}]], "joins": [], "filters": [["IsNull", {"table": "crates", "column": "bay_id"}]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT tag FROM crates WHERE bay_id IS NULL"}
+  },
+  {
+    "id": "occupied-bay",
+    "question": "Give the crate tags at bay A17.",
+    "ordered": false,
+    "expected_rows": [[["Text", "cedar"]], [["Text", "ash"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}]], "joins": [{"table": "bays", "via": "crates"}], "filters": [["Compare", {"table": "bays", "column": "code"}, "Equal", ["Text", "A17"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT tag FROM crates JOIN bays ON bays.id=crates.bay_id WHERE code='A17'"}
+  },
+  {
+    "id": "empty-bay",
+    "question": "货位 C14 里有哪些箱子？返回箱子标签。",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}]], "joins": [{"table": "bays", "via": "crates"}], "filters": [["Compare", {"table": "bays", "column": "code"}, "Equal", ["Text", "C14"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT tag FROM crates JOIN bays ON bays.id=crates.bay_id WHERE code='C14'"}
+  },
+  {
+    "id": "scan-bay",
+    "question": "For every scan by reader R7, give the bay code of the scanned crate.",
+    "ordered": false,
+    "expected_rows": [[["Text", "A17"]], [["Text", "B29"]]],
+    "fixture_plan": {"plan": {"from_table": "scans", "select": [["Column", {"table": "bays", "column": "code"}]], "joins": [{"table": "crates", "via": "scans"}, {"table": "bays", "via": "crates"}], "filters": [["Compare", {"table": "scans", "column": "reader"}, "Equal", ["Text", "R7"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT code FROM scans JOIN crates ON crates.id=scans.crate_id JOIN bays ON bays.id=crates.bay_id WHERE reader='R7'"}
+  },
+  {
+    "id": "crew-crates",
+    "question": "List the tag of every crate stored at a bay where the Red crew has a shift.",
+    "ordered": false,
+    "expected_rows": [[["Text", "cedar"]], [["Text", "ash"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}]], "joins": [{"table": "bays", "via": "crates"}, {"table": "shifts", "via": "bays"}], "filters": [["Compare", {"table": "shifts", "column": "crew"}, "Equal", ["Text", "Red"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT tag FROM crates JOIN bays ON bays.id=crates.bay_id JOIN shifts ON bays.id=shifts.bay_id WHERE crew='Red'"}
+  },
+  {
+    "id": "scan-count",
+    "question": "For each crate with scans, return its tag and the number of scans.",
+    "ordered": false,
+    "expected_rows": [[["Text", "cedar"], ["Integer", "2"]], [["Text", "elm"], ["Integer", "1"]]],
+    "fixture_plan": {"plan": {"from_table": "crates", "select": [["Column", {"table": "crates", "column": "tag"}], "CountAll"], "joins": [{"table": "scans", "via": "crates"}], "filters": [], "group_by": [{"table": "crates", "column": "tag"}], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT tag, COUNT(*) FROM crates JOIN scans ON crates.id=scans.crate_id GROUP BY tag"}
+  }
+]

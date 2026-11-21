@@ -240,3 +240,56 @@ async test "OpenAI-compatible adapter sends JSON and reads a text choice" {
     assert_eq(callback("instructions", "input"), "reply")
   }
 }
+
+///|
+async test "an opted-in retry uses declared edges and revalidates the replacement" {
+  let path = "eval/join-dev/depot.db"
+  let question = "Which bay codes occur in reader R7 scans?"
+  let invalid =
+    #|{"plan":{"from_table":"scans","select":[["Column",{"table":"bays","column":"code"}]],"joins":[{"table":"bays","via":"scans"}],"filters":[],"group_by":[],"order_by":[]}}
+  let valid =
+    #|{"plan":{"from_table":"scans","select":[["Column",{"table":"bays","column":"code"}]],"joins":[{"table":"crates","via":"scans"},{"table":"bays","via":"crates"}],"filters":[["Compare",{"table":"scans","column":"reader"},"Equal",["Text","R7"]]],"group_by":[],"order_by":[{"position":1,"descending":false}]}}
+  let catalog = @sqlite.read_catalog(path)
+  assert_true(@planner.plan_retry_request(catalog, question, valid) is None)
+  assert_true(
+    @planner.plan_retry_request(
+      catalog, question, "{\"no_answer\":\"missing\"}",
+    )
+    is None,
+  )
+  for (accepted, replacement) in [(true, valid), (false, invalid)] {
+    let mut calls = 0
+    let result = Some(
+      @planner.ask(
+        path,
+        question,
+        (_, input) => {
+          calls += 1
+          if calls == 1 {
+            invalid
+          } else {
+            assert_true(input.contains("InvalidJoin"))
+            assert_true(
+              input.contains("{\"via\":\"scans\",\"table\":\"crates\"}"),
+            )
+            assert_true(input.contains(question))
+            replacement
+          }
+        },
+        retry_invalid=true,
+      ),
+    ) catch {
+      @plan.PlanError::InvalidJoin(_, _) => None
+      error => raise error
+    }
+    assert_eq(calls, 2)
+    if accepted {
+      guard result is Some(Queried(evidence)) else {
+        fail("expected query rows")
+      }
+      assert_eq(evidence.result.rows, [[Text("A17")], [Text("B29")]])
+    } else {
+      assert_true(result is None)
+    }
+  }
+}

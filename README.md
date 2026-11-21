@@ -87,19 +87,22 @@ The verifier prints the paths to both reports. `audit-result.json` records the e
 
 `@planner.ask` takes a database path, a question, and a model callback. The library sends the question, schema, and foreign keys to the model. It validates the returned plan before opening a data query and returns the executed SQL, bindings, rows, and catalog as evidence.
 
+The Native live CLI and structured evaluator request one replacement when the first plan fails compilation. The replacement gets the validation error, table columns and declared joins. Library callers can enable this with `retry_invalid=true` on `@planner.ask`.
+
 The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite.
 
 ### Independent museum holdout
 
-The museum holdout contains 12 answerable questions and 8 that require facts absent from its SQLite catalog. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct model. We selected the second check on 24 separate development examples and fixed it before reevaluating the holdout. [Museum questions](eval/holdout/questions.json) · [Development examples](eval/schema-evidence-dev.json)
+On the 20-question museum holdout, one retry for a rejected plan raised structured accuracy from **3/12 to 6/12** on answerable questions. Both paths correctly refused all eight unanswerable questions and recorded zero false refusals on the 12 answerable questions. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We selected the retry on nine separate warehouse development cases and froze the implementation before rerunning the museum set. [Museum questions](eval/holdout/questions.json) · [Warehouse development cases](eval/join-dev/questions.json)
 
-| Museum metric | Structured plan, original → revised | Direct SQL, original → revised |
+| Museum metric | Structured plan, before → after retry | Direct SQL, before → after |
 | --- | ---: | ---: |
-| Correct abstentions | 4/8 → 8/8 | 4/8 → 8/8 |
-| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
-| Correct results on answerable questions | 3/12 → 3/12 | 6/12 → 6/12 |
+| Correct results on answerable questions | 3/12 → 6/12 | 6/12 → 6/12 |
+| Invalid output across all questions | 4/20 → 1/20 | 0/20 → 0/20 |
+| Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
 
-The revised check preserves the distinction between a missing column and a query that returns no rows. For North Annex, both paths proceeded to generation. Direct SQL returned the expected empty result and the structured plan failed join validation. Two local runs produced byte-identical reports. [Analysis and raw results](eval/live-model-report.md#catalog-verified-museum-reevaluation) · [Reproduction commands](#reproduce-the-comparison)
+The three recovered queries all needed a single table. They now return the right floor-filtered names, year-filtered titles and grouped insurance totals. North Annex genuinely requires a join. The replacement fixed its name filter but still chose an undeclared edge from loans to galleries. Direct SQL returned the expected empty result. [Four-case analysis and raw replies](eval/live-model-report.md#join-generation-on-the-museum-holdout) · [Reproduction commands](#reproduce-the-comparison)
 
 ### Development set
 
@@ -138,7 +141,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator. The `--live` command runs the development set, and `--live --holdout` runs the museum set. Each writes its own JSON report.
+In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -148,11 +151,13 @@ Remove-Item Env:NL2SQL_API_KEY -ErrorAction SilentlyContinue
 moon update
 moon run --quiet --target native cmd/eval -- --live > nl2sql-answerability.json
 if ($LASTEXITCODE -ne 0) { throw 'Live evaluation failed. Inspect nl2sql-answerability.json.' }
+moon run --quiet --target native cmd/eval -- --live --join-dev > nl2sql-join-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'JOIN development evaluation failed. Inspect nl2sql-join-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```
 
-Both modes compare typed rows against the expected results for the selected set. The report records per-question outcomes, executed queries and parameters, result accuracy, invalid output, correct abstention, and false abstention. Live mode also records the original answerability and generation replies. [Development questions](eval/questions.json) · [Full M3 report](eval/live-model-report.md)
+The evaluator compares typed rows against the expected results for the selected set. The report records per-question outcomes, executed queries and parameters, result accuracy, invalid output, correct abstention, and false abstention. Live mode also records the original answerability and generation replies. [Development questions](eval/questions.json) · [Full M3 report](eval/live-model-report.md)
 
 ## WASM demo
 
