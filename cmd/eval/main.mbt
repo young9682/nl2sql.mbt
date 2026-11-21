@@ -36,21 +36,20 @@ struct LiveModel {
 ///|
 async fn main {
   let args = @env.args()
-  let (mode, holdout) = match args {
-    [_, "--fixture"] => ("fixture", false)
-    [_, "--live"] => ("live", false)
-    [_, "--fixture", "--holdout"] => ("fixture", true)
-    [_, "--live", "--holdout"] => ("live", true)
+  let (mode, db_path, question_path) = match args {
+    [_, "--fixture" | "--live" as flag] => (flag, database, questions_file)
+    [_, "--fixture" | "--live" as flag, "--holdout"] =>
+      (flag, "eval/holdout/museum.db", "eval/holdout/questions.json")
+    [_, "--fixture" | "--live" as flag, "--join-dev"] =>
+      (flag, "eval/join-dev/depot.db", "eval/join-dev/questions.json")
     _ => {
-      println("Usage: moon run cmd/eval -- (--fixture | --live) [--holdout]")
+      println(
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev]",
+      )
       @env.exit(2)
     }
   }
-  let (db_path, question_path) = if holdout {
-    ("eval/holdout/museum.db", "eval/holdout/questions.json")
-  } else {
-    (database, questions_file)
-  }
+  let mode = if mode == "--live" { "live" } else { "fixture" }
   let name = if mode == "live" {
     required_env("NL2SQL_MODEL")
   } else {
