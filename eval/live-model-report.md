@@ -100,7 +100,7 @@ The two follow-up runs produced byte-identical reports. Both paths recorded zero
 
 ## Follow-up with a shared schema answerability check
 
-The latest run adds the same model check to each path before query generation. It sends the question, the table and column names, and four example exchanges from unrelated schemas. The examples cover recorded measures, unavailable inputs to a calculation, and a missing event time. The check returns explicit approval or a refusal naming the missing data. A malformed assessment counts as invalid output. A refusal skips query generation and SQLite data execution. The generation prompts, catalog input, SQL policy, and scoring rules are the same as in the preceding follow-up.
+This development-set follow-up added the same model check to each path before query generation. It sends the question, the table and column names, and four example exchanges from unrelated schemas. The examples cover recorded measures, unavailable inputs to a calculation, and a missing event time. The check returns explicit approval or a refusal naming the missing data. A malformed assessment counts as invalid output. A refusal skips query generation and SQLite data execution. The generation prompts, catalog input, SQL policy, and scoring rules are the same as in the preceding follow-up.
 
 The local run used the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, Windows Vulkan build, JSON grammar, eight questions and SQLite snapshot from the previous comparison. A baseline run at `c334bd9d14ea95481ce4577f23218bf49b297f25` reproduced the previously published outcomes and raw replies. The updated evaluator reports two byte-identical local runs.
 
@@ -114,3 +114,29 @@ The local run used the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, Window
 Both paths declined `unanswerable-profit` because net profit was unavailable and `unanswerable-delivery-date` because the database did not record delivery times. All six answerable cases produced the same generation replies as the baseline, including the valid query that returned zero rows. For `spend-by-user`, the structured plan returned zero rows after adding a null filter, and direct SQL returned only one user. Plan validation rejected `top-stock` and `stock-by-region`, while SQLite rejected the direct SQL for `top-stock` because it referenced an unknown column. Both paths recorded zero provider and execution failures. This fixed set was used to develop the check, so the figures describe its behavior on these eight questions. [Raw replies and per-question results](results/qwen2.5-coder-1.5b-answerability.json)
 
 To reproduce the updated run, use evaluator revision `8b0be3df6a199bf54c7a5f6df9387060eb2d13b3` with the same server command, weights, and grammar as above. The check and query generation each have a 30-second model request timeout. Supported cases make two requests per path. [Server and evaluator commands](../README.md#reproduce-the-comparison)
+
+## Independent museum holdout
+
+The synthetic museum fixture covers galleries, artworks, exhibitions, and loans. The 20 English and Chinese questions include joins, aggregates, a date range, duplicate rows, an empty result, and requests for facts absent from the schema. The labels and reference replies were committed at `84d23089ce7b682ee8acde08c873337618977fbd` before any model run on these questions. Both fixture paths then passed all 20 reference outcomes. The prompts and answerability examples stayed at their development-set settings throughout the holdout. [Questions and reference replies](holdout/questions.json) · [SQLite schema and sample data](holdout/museum.sql)
+
+Both paths ran on the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights and Windows Vulkan runtime with the previously pinned JSON grammar, temperature 0, and seed 42. A correct abstention is an explicit refusal on an unanswerable question. A false abstention is an explicit refusal on an answerable one, including a question whose correct result is empty. The abstention counts grade the decision. Result accuracy uses typed rows over all 12 answerable questions, including any refusals or errors.
+
+| Metric | Structured query plan | Direct SQL |
+| --- | ---: | ---: |
+| Correct abstention | 4/8 (50%) | 4/8 (50%) |
+| False abstention | 0/12 (0%) | 0/12 (0%) |
+| Result accuracy | 3/12 (25%) | 6/12 (50%) |
+| Invalid output | 7/20 (35%) | 2/20 (10%) |
+
+The shared check refused the same four questions on both paths and allowed all 12 answerable questions through. Its refusal for `missing-transport-date` described missing loan information generally. The actual gap is the departure date. Loan requests and returns are recorded.
+
+| Unanswerable case approved by the check | Structured query plan | Direct SQL |
+| --- | --- | --- |
+| Contractual loan due date | Ran a query using a fixed date unrelated to the loan contract | Compared return dates with request dates |
+| Artist birth country | Produced a plan that failed decoding | Queried a nonexistent country column |
+| After-hours security assignments | Produced a plan that failed decoding | Queried a nonexistent security guard column |
+| Restoration history | Referenced a nonexistent `fixes` column | Used completed loans as a proxy for restorations |
+
+On the valid North Annex query, direct SQL returned the expected zero rows and the structured plan used an invalid join. Both paths omitted the painting filter in the duplicate-values question. Each run recorded zero provider and execution failures. The two complete reports were byte-identical. [Raw assessment and generation replies](results/qwen2.5-coder-1.5b-museum-holdout.json)
+
+To reproduce these numbers, use evaluator revision `591625c409c744ba7af7bd7d150aa774ae4feb96` and the bundled `eval/holdout/museum.db` snapshot. Its SHA-256 is `562f9a84aa08da75fcabc1dc8b7261a6c988be1b014875a7361ce26211d39c5d`. Start the pinned local server and use `--live --holdout`. The corresponding fixture replay uses `--fixture --holdout`. [Server and evaluator commands](../README.md#reproduce-the-comparison)
