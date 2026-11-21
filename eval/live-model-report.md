@@ -97,3 +97,20 @@ The follow-up uses the same model, eight questions, SQLite snapshot, and server 
 | Correct abstention | 0/2 | 0/2 | 0/2 |
 
 The two follow-up runs produced byte-identical reports. Both paths recorded zero provider and execution failures. To reproduce, use evaluator revision `ff2c28544b0b5f34079a77a635efc98d3dbc16f8` and the JSON grammar server command under [Reproduce](#reproduce). [Raw follow-up results](results/qwen2.5-coder-1.5b-plan-followup.json)
+
+## Follow-up with a shared schema answerability check
+
+The latest run adds the same model check to each path before query generation. It sends the question, the table and column names, and four example exchanges from unrelated schemas. The examples cover recorded measures, unavailable inputs to a calculation, and a missing event time. The check returns explicit approval or a refusal naming the missing data. A malformed assessment counts as invalid output. A refusal skips query generation and SQLite data execution. The generation prompts, catalog input, SQL policy, and scoring rules are the same as in the preceding follow-up.
+
+The local run used the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, Windows Vulkan build, JSON grammar, eight questions and SQLite snapshot from the previous comparison. A baseline run at `c334bd9d14ea95481ce4577f23218bf49b297f25` reproduced the previously published outcomes and raw replies. The updated evaluator reports two byte-identical local runs.
+
+| Metric | Structured plan before | Structured plan with check | Direct SQL before | Direct SQL with check |
+| --- | ---: | ---: | ---: | ---: |
+| Result accuracy | 3/6 (50%) | 3/6 (50%) | 4/6 (66.7%) | 4/6 (66.7%) |
+| Invalid output | 4/8 (50%) | 2/8 (25%) | 2/8 (25%) | 1/8 (12.5%) |
+| Correct abstention | 0/2 (0%) | 2/2 (100%) | 0/2 (0%) | 2/2 (100%) |
+| False abstention | 0/6 (0%) | 0/6 (0%) | 0/6 (0%) | 0/6 (0%) |
+
+Both paths declined `unanswerable-profit` because net profit was unavailable and `unanswerable-delivery-date` because the database did not record delivery times. All six answerable cases produced the same generation replies as the baseline, including the valid query that returned zero rows. For `spend-by-user`, the structured plan returned zero rows after adding a null filter, and direct SQL returned only one user. Plan validation rejected `top-stock` and `stock-by-region`, while SQLite rejected the direct SQL for `top-stock` because it referenced an unknown column. Both paths recorded zero provider and execution failures. This fixed set was used to develop the check, so the figures describe its behavior on these eight questions. [Raw replies and per-question results](results/qwen2.5-coder-1.5b-answerability.json)
+
+To reproduce the updated run, use evaluator revision `8b0be3df6a199bf54c7a5f6df9387060eb2d13b3` with the same server command, weights, and grammar as above. The check and query generation each have a 30-second model request timeout. Supported cases make two requests per path. [Server and evaluator commands](../README.md#reproduce-the-comparison)

@@ -36,6 +36,8 @@ Set `NL2SQL_ENDPOINT` to the full Chat Completions URL, `NL2SQL_MODEL` to the mo
 moon run --quiet --target native cmd/nl2sql -- --db sqlite/fixtures/orders.db "What did each user spend?"
 ```
 
+The live CLI checks whether the schema contains the data needed by the question. A refusal returns `no_answer` before planning or executing a data query.
+
 ## Native SQLite API
 
 Import `young9682/nl2sql/sqlite` in a Native package. Each `query` call opens its own read-only connection to an existing local SQLite file. The API binds values by SQLite parameter index and returns columns and typed cells in result order.
@@ -87,26 +89,48 @@ The verifier prints the paths to both reports. `audit-result.json` records the e
 
 The reply decoder treats `"limit": null` as an omitted limit and accepts a quoted JSON number for a `Real` filter if the parsed value is finite.
 
-The latest live-model follow-up uses Qwen2.5-Coder 1.5B and the same eight questions, SQLite snapshot, and JSON grammar for both paths. Repeated runs produced identical reports.
+The live comparison runs the same schema-only answerability check for both paths. It supplies the question and table and column names to Qwen2.5-Coder 1.5B. For supported questions, each path uses its existing prompt and the full catalog. The before and after runs use the same eight questions, SQLite snapshot, model, and JSON grammar.
 
-| Metric | Structured plan before update | Structured plan after update | Direct SQL |
-| --- | ---: | ---: | ---: |
-| Correct results on answerable questions | 0/6 | 3/6 | 4/6 |
-| Invalid output across all questions | 8/8 | 4/8 | 2/8 |
-| Correct abstention on unanswerable questions | 0/2 | 0/2 | 0/2 |
+| Metric | Structured plan before | Structured plan after | Direct SQL before | Direct SQL after |
+| --- | ---: | ---: | ---: | ---: |
+| Correct results on answerable questions | 3/6 | 3/6 | 4/6 | 4/6 |
+| Invalid output across all questions | 4/8 | 2/8 | 2/8 | 1/8 |
+| Correct abstention on unanswerable questions | 0/2 | 2/2 | 0/2 | 2/2 |
 
-These results describe the tested model and question set. The report records the rejected plans, an executable query that returned the wrong rows, and reproduction steps. [Planner follow-up](eval/live-model-report.md#follow-up-with-plan-examples-and-compatible-replies)
+Both paths declined the questions about net profit and delivery dates. The six answerable questions kept their previous outcomes, including the valid empty result. Two runs produced identical reports. We used this question set to develop the check. [M3 answerability follow-up](eval/live-model-report.md#follow-up-with-a-shared-schema-answerability-check) · [Raw model replies](eval/results/qwen2.5-coder-1.5b-answerability.json)
 
-Run the comparison from the repository root.
+### Reproduce the comparison
+
+Replay the checked-in replies for both paths from the repository root.
 
 ```bash
 moon run --quiet --target native cmd/eval -- --fixture
-moon run --quiet --target native cmd/eval -- --live
 ```
 
-Fixture mode replays checked-in model responses across both paths. Live mode uses `NL2SQL_ENDPOINT` for the full Chat Completions URL, `NL2SQL_MODEL` for the model identifier, and `NL2SQL_API_KEY` when the endpoint requires a bearer token.
+For the live run, use the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, `llama.cpp b12503` Windows Vulkan build, and JSON grammar. Put `llama-server.exe` on your path and run the commands below in PowerShell from the directory containing the GGUF and grammar. Use `llama-server --list-devices` to choose the device for your system. [Pinned downloads and checksums](eval/live-model-report.md#reproduce)
 
-Both modes use the bundled SQLite snapshot and [fixed question set](eval/questions.json). The JSON report includes per-question outcomes, executed SQL and parameters for successful queries, result accuracy, invalid output rate, and correct abstention rate. Live mode also records each original model reply. Row comparison preserves duplicates and checks row order when requested. The paired runs, raw output, and reproduction commands are in the [M3 live-model report](eval/live-model-report.md).
+```powershell
+$weights = (Resolve-Path .\qwen2.5-coder-1.5b-instruct-q4_k_m.gguf).Path
+$device = 'Vulkan1'
+llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
+  --host 127.0.0.1 --port 18084 --device $device --gpu-layers all `
+  --ctx-size 4096 --parallel 1 --predict 512 --temp 0 --seed 42 `
+  --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
+```
+
+In a second PowerShell session at the repository root, run the live evaluator.
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:18084/health'
+$env:NL2SQL_ENDPOINT = 'http://127.0.0.1:18084/v1/chat/completions'
+$env:NL2SQL_MODEL = 'qwen2.5-coder-1.5b-instruct-q4_k_m'
+Remove-Item Env:NL2SQL_API_KEY -ErrorAction SilentlyContinue
+moon update
+moon run --quiet --target native cmd/eval -- --live > nl2sql-answerability.json
+if ($LASTEXITCODE -ne 0) { throw 'Live evaluation failed. Inspect nl2sql-answerability.json.' }
+```
+
+Both modes compare typed rows against the same expected results. The report records per-question outcomes, executed queries and parameters, correct rows, invalid output, and correct abstention. Live mode also records the original answerability and generation replies. [Fixed question set](eval/questions.json) · [Full M3 report](eval/live-model-report.md)
 
 ## WASM demo
 
