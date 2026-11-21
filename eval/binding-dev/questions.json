@@ -1,0 +1,82 @@
+[
+  {
+    "id": "release-publication",
+    "question": "When was Saffron Kite published?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-02-14"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "published_on"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "label"}, "Equal", ["Text", "Saffron Kite"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT published_on FROM releases WHERE label = 'Saffron Kite'"}
+  },
+  {
+    "id": "release-archive",
+    "question": "On which date was June Parade archived?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-07-03"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "archived_on"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "label"}, "Equal", ["Text", "June Parade"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT archived_on FROM releases WHERE label = 'June Parade'"}
+  },
+  {
+    "id": "absent-release",
+    "question": "What is the publication date of Ivory Harbor?",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "published_on"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "label"}, "Equal", ["Text", "Ivory Harbor"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT published_on FROM releases WHERE label = 'Ivory Harbor'"}
+  },
+  {
+    "id": "date-shaped-label",
+    "question": "When was the release labeled \"2025-02-14\" published?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-19"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "published_on"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "label"}, "Equal", ["Text", "2025-02-14"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT published_on FROM releases WHERE label = '2025-02-14'"}
+  },
+  {
+    "id": "published-on",
+    "question": "Give the release labels published on 2025-02-14.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Saffron Kite"]], [["Text", "June Parade"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "label"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "published_on"}, "Equal", ["Text", "2025-02-14"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM releases WHERE published_on = '2025-02-14'"}
+  },
+  {
+    "id": "archived-on",
+    "question": "Give the release labels archived on 2025-04-20.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Saffron Kite"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "label"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "archived_on"}, "Equal", ["Text", "2025-04-20"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT label FROM releases WHERE archived_on = '2025-04-20'"}
+  },
+  {
+    "id": "date-to-date",
+    "question": "Give the publication dates of releases archived on 2025-04-20.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-02-14"]]],
+    "fixture_plan": {"plan": {"from_table": "releases", "select": [["Column", {"table": "releases", "column": "published_on"}]], "joins": [], "filters": [["Compare", {"table": "releases", "column": "archived_on"}, "Equal", ["Text", "2025-04-20"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT published_on FROM releases WHERE archived_on = '2025-04-20'"}
+  },
+  {
+    "id": "event-name",
+    "question": "When was Cloud Circle held?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2024-06-09"]]],
+    "fixture_plan": {"plan": {"from_table": "meetups", "select": [["Column", {"table": "meetups", "column": "held_on"}]], "joins": [], "filters": [["Compare", {"table": "meetups", "column": "name"}, "Equal", ["Text", "Cloud Circle"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT held_on FROM meetups WHERE name = 'Cloud Circle'"}
+  },
+  {
+    "id": "event-venue",
+    "question": "List the dates of meetups held at Union Yard.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2024-06-09"]], [["Text", "2024-07-11"]]],
+    "fixture_plan": {"plan": {"from_table": "meetups", "select": [["Column", {"table": "meetups", "column": "held_on"}]], "joins": [], "filters": [["Compare", {"table": "meetups", "column": "venue"}, "Equal", ["Text", "Union Yard"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT held_on FROM meetups WHERE venue = 'Union Yard'"}
+  },
+  {
+    "id": "all-dates",
+    "question": "List every recorded meetup date.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2024-06-09"]], [["Text", "2024-08-12"]], [["Text", "2024-07-11"]]],
+    "fixture_plan": {"plan": {"from_table": "meetups", "select": [["Column", {"table": "meetups", "column": "held_on"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT held_on FROM meetups"}
+  }
+]
