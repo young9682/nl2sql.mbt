@@ -254,3 +254,49 @@ db.execute("UPDATE artworks SET gallery_id=(SELECT id FROM galleries WHERE name=
 assert db.execute(case["sql"], params).fetchall() == [("Night Market",)]
 db.close()
 ```
+
+## Missing text filters on executable plans
+
+Five structured queries in the preceding museum run executed successfully and returned the wrong rows. All five omitted a requested text condition or used the wrong predicate for it. Three had no WHERE clause at all. [Baseline questions, SQL, parameters and rows](results/qwen2.5-coder-1.5b-museum-route.json)
+
+| Museum question ID | Error visible in the executed baseline SQL |
+| --- | --- |
+| `exhibition-opening` | Selected every exhibition opening date and omitted the title Ink Routes. |
+| `highest-print-cover` | Computed the maximum across all media. The maximum for prints is 7600, compared with 34000 for the full collection. |
+| `painting-values-with-duplicates` | Returned all eight insured values. Restricting the input to paintings preserves the two separate rows valued at 34000. |
+| `loaned-work-titles` | Used a null borrower in place of Hill Library and projected an extra artwork ID. |
+| `recent-harbor-requests` | Applied the date condition without the Harbor Museum borrower and used a strict lower bound for an inclusive start date. |
+
+### Tool development and operator controls
+
+We fixed eleven new questions and a SQLite tool catalog at `40c3d65`. The rows distinguish a global maximum from a category maximum, preserve duplicate category prices, and include a null maker and a listing on the date boundary. Baseline structured accuracy was 6/11 and direct SQL accuracy was 9/11. Rewriting the first-generation prompt reached 8/11 but broke a previously correct per-category count. We selected a separate equality review that reached 8/11 and preserved all six previous successes. It recovered the maximum price for planes and both chisel price rows. Direct SQL stayed at 9/11. [Development questions](filter-dev/questions.json) · [Tool catalog](filter-dev/tools.sql) · [Raw development replies](results/qwen2.5-coder-1.5b-tools-text-filters.json)
+
+The Native live CLI and structured evaluator can spend one extra call on a compilable, single-table first plan with empty filters, joins and grouping. The reviewer receives the question, the table name and its text-affinity column names. Its proposal must name an eligible column and a text value found in the question, allowing a regular English plural ending in *s*. The planner adds at most one bound equality. SQL, parameters and the original model and review replies are available in the live report. Library callers opt in through `review_filter` on `@planner.ask`.
+
+A regression test passes the same unfiltered plan to the reviewer for eleven English and Chinese phrasings covering exclusion, alternatives and partial matches. Each case verifies the plan stays byte-identical and the model callback receives zero calls. A separate local-model probe for each category also recorded zero equality reviews. The original generator still made operator mistakes. The exclusion used `IS NULL`, the alternative used two equalities joined with `AND`, and the partial match failed plan decoding. These are limits of the end-to-end planner. The guard checks wording and does not establish equivalence for arbitrary paraphrases. [Control test](../planner/planner_test.mbt) · [Three live probes](results/qwen2.5-coder-1.5b-text-filter-controls.json)
+
+From the repository root, run the eleven boundary controls with the following command. The single named test iterates over all eleven questions.
+
+```powershell
+moon test --target native planner -f 'text filter review preserves*'
+```
+
+### Frozen museum comparison
+
+We committed the selected implementation at `09c4fe9ccea1e2e61eb8b1d5219b19413e431c9b` before rerunning the museum set. The two paths used identical local Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, llama.cpp b12503 Vulkan server, JSON grammar, temperature 0, seed 42, museum snapshot, question order and scorer. The original generation, schema-check and invalid-plan retry prompts stayed fixed.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed results on answerable questions | 7/12 → 8/12 | 6/12 → 6/12 |
+| Correct abstentions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Invalid output | 0/20 → 0/20 | 0/20 → 0/20 |
+
+Exactly three questions triggered an extra model call. For the print maximum, the reviewer supplied `medium = 'print'`, and the executed query returned 7600. For Ink Routes it supplied `opens_on = 'Ink Routes'`, which returned no rows. The literal was present in the question and the column had text affinity, but the date column was the wrong semantic choice. The painting question received a null proposal and kept its unfiltered result. The two other baseline errors already had predicates and skipped review. Two complete museum runs produced byte-identical reports with zero provider or execution failures. No previously correct answer became wrong. All direct SQL observations and all original assessment and generation replies matched the baseline. [Previous report](results/qwen2.5-coder-1.5b-museum-route.json) · [New report with raw filter proposals and executed SQL](results/qwen2.5-coder-1.5b-museum-text-filters.json)
+
+To reproduce, use revision `40c3d65` for the before measurements and `09c4fe9` for the frozen review. Start the pinned local server and run the following from the repository root. Each command generates fresh replies for both paths. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --live --filter-dev
+moon run --quiet --target native cmd/eval -- --live --holdout
+```
