@@ -2,6 +2,38 @@
 let fixture = "sqlite/fixtures/orders.db"
 
 ///|
+async test "an optional assessment can decline without asking for a plan" {
+  let result = @planner.ask(
+    fixture,
+    "When did each user first log in?",
+    (_, _) => fail("unexpected plan request"),
+    assess=Some((catalog, _) => {
+      assert_true(catalog.schema.find_table("users") is Some(_))
+      "{\"no_answer\":\"The database does not record logins.\"}"
+    }),
+  )
+  assert_true(result is NoAnswer("The database does not record logins."))
+}
+
+///|
+test "an assessment must make one unambiguous decision" {
+  let malformed = [
+    "{}", "{\"supported\":false}", "{\"no_answer\":\" \"}", "{\"supported\":true,\"no_answer\":\"missing data\"}",
+    "{\"supported\":true,\"supported\":false}",
+  ]
+  for reply in malformed {
+    let rejected = try {
+      ignore(@planner.parse_answerability(reply))
+      false
+    } catch {
+      @planner.PlannerError::InvalidReply(_) => true
+      error => raise error
+    }
+    assert_true(rejected)
+  }
+}
+
+///|
 async test "ask turns a structured model reply into an executed join and evidence" {
   let result = @planner.ask(fixture, "What did each user spend?", (
     instructions,
