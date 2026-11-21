@@ -1,0 +1,749 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/category-dev/parcels.db",
+  "questions": "eval/category-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 5,
+      "total": 8,
+      "rate": 0.625
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 3,
+      "total": 8,
+      "rate": 0.375
+    },
+    "invalid_output_rate": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "tube-masses",
+      "question": "Give the masses of the tubes, one result per parcel.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "630"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\" WHERE \"parcels\".\"shape\" = ?",
+        "params": [
+          [
+            "Text",
+            "tube"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"shape\",\"tube\"]}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: tubes\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.mass_g FROM parcels AS T1 INNER JOIN tubes AS T2 ON T1.id = T2.parcel_id\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "crate-masses",
+      "question": "List the mass of each crate.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "980"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\" WHERE \"parcels\".\"shape\" = ?",
+        "params": [
+          [
+            "Text",
+            "crate"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"shape\",\"crate\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels\"}",
+        "sql": "SELECT mass_g FROM parcels",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "pouch-masses",
+      "question": "What are the masses of the pouches?",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "110"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels WHERE label = 'Pouches'\"}",
+        "sql": "SELECT mass_g FROM parcels WHERE label = 'Pouches'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-shape",
+      "question": "List the masses of the drums, one row for every matching parcel.",
+      "expected_rows": [],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: drums\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT p.mass_g FROM parcels p INNER JOIN drums d ON p.id = d.parcel_id\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-masses",
+      "question": "Give the masses of all parcels, one result per parcel.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "630"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "980"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "110"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels\"}",
+        "sql": "SELECT mass_g FROM parcels",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "carrier-masses",
+      "question": "List the masses of parcels shipped by Oak Post.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "110"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\" WHERE \"parcels\".\"carrier\" = ?",
+        "params": [
+          [
+            "Text",
+            "Oak Post"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"carrier\",\"Oak Post\"]}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels WHERE carrier = 'Oak Post'\"}",
+        "sql": "SELECT mass_g FROM parcels WHERE carrier = 'Oak Post'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "named-parcel",
+      "question": "Give the mass of the parcel labeled River Bell.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"parcels\",\"column\":\"label\"},\"Equal\",[\"Text\",\"River Bell\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\" WHERE \"parcels\".\"label\" = ?",
+        "params": [
+          [
+            "Text",
+            "River Bell"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"parcels\\\",\\\"mass_g\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels WHERE label = 'River Bell'\"}",
+        "sql": "SELECT mass_g FROM parcels WHERE label = 'River Bell'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "tube-repeat",
+      "question": "Show the mass for every tube, keeping repeated values.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "420"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "630"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"parcels\",\"select\":[[\"Column\",{\"table\":\"parcels\",\"column\":\"mass_g\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"parcels\".\"mass_g\" FROM \"parcels\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT mass_g FROM parcels\"}",
+        "sql": "SELECT mass_g FROM parcels",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "630"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "420"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "980"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "110"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

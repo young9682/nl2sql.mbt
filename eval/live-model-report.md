@@ -347,3 +347,46 @@ moon run --quiet --target native cmd/eval -- --fixture --binding-dev
 moon run --quiet --target native cmd/eval -- --live --binding-dev > calendar-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Category filtering with duplicate values
+
+The previous museum report recorded an unfiltered projection for `painting-values-with-duplicates`. The reviewer returned `{"equals":null}`, so SQLite read all eight artwork values. Two of those rows were the expected paintings, each insured for 34000. The error was admitting six other artworks. [Baseline museum plan, review and rows](results/qwen2.5-coder-1.5b-museum-column-binding.json)
+
+### Parcel development
+
+We fixed eight questions and a six-row SQLite parcel database at `eb3b62f`. Three tubes weigh 420, 420 and 630 grams. A crate also weighs 420 grams. Filtering by shape must therefore preserve two copies of 420, exclude the third and return the 630 row. An unrestricted question expects all six rows. Other questions ask for a named parcel, a carrier, a different shape and a shape absent from the database. The existing scorer compares typed rows with multiplicity. [Questions and expected rows](category-dev/questions.json) · [Parcel data](category-dev/parcels.sql) · [Scorer](../cmd/eval/score.mbt)
+
+A valid single-table first plan that projects one non-text column and omits filters and grouping now uses reviewer examples for individual rows. The examples distinguish asking for every item of a kind from asking for every item in the table. A proposed equality still requires an eligible text column and a value grounded in the question. This now covers `pouch` in `pouches` while keeping quoted literals exact. An accepted review changes only the filter. SQLite returns a row for each matching parcel. [Review code](../planner/filter.mbt) · [Duplicate-count and plural-boundary tests](../planner/planner_test.mbt)
+
+| End-to-end development accuracy | Previous | Frozen |
+| --- | ---: | ---: |
+| Structured plan on parcels | 5/8 | 7/8 |
+| Direct SQL on parcels | 3/8 | 3/8 |
+
+The two recovered questions were `tube-repeat` and `pouch-masses`. The absent-shape question still returned every mass. Its wording “every matching parcel” triggered the existing pattern guard and skipped the equality review. During development, applying the row examples to aggregates also caused the tool catalog's global maximum to acquire a spurious filter. We kept the original aggregate review. The final tool run returned 90 for the global maximum and 48 for the plane maximum, with overall accuracy of 8/11 structured and 9/11 direct. [Parcel baseline](results/qwen2.5-coder-1.5b-parcels-category-baseline.json) · [Frozen parcel run](results/qwen2.5-coder-1.5b-parcels-category.json)
+
+### Frozen museum comparison for category filters
+
+At `e49ce2a70e2906520457d0c250ec62d5a7ebee80` we ran both paths twice on the same museum questions, SQLite snapshot and typed-row scorer. We used the local Qwen2.5-Coder-1.5B-Instruct Q4_K_M with llama.cpp b12503 on Vulkan1, temperature 0, seed 42 and the pinned JSON grammar. This museum set has been reevaluated across multiple rounds. The development changes in this round were fixed before the first museum run.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct typed rows on answerable questions | 9/12 → 10/12 | 6/12 → 6/12 |
+| Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
+
+Only the structured observation for `painting-values-with-duplicates` changed. The first plan still selected every insured value. The reviewer returned `{"equals":["medium","painting"]}`. SQLite executed the following query with the text parameter `painting` and returned two integer rows of 34000. Direct SQL still returned eight rows. The structured path still missed `loaned-work-titles` and `recent-harbor-requests`. All 20 direct SQL observations matched the previous run. Both paths had zero provider and execution failures. The two new reports were byte-identical. [Frozen replies, executed SQL and rows](results/qwen2.5-coder-1.5b-museum-category.json) · [Previous comparison](results/qwen2.5-coder-1.5b-museum-column-binding.json)
+
+```sql
+SELECT "artworks"."insured_value" FROM "artworks" WHERE "artworks"."medium" = ?
+```
+
+To reproduce the before and after runs, use `eb3b62f` for the baseline and `e49ce2a` for the frozen planner. Start the pinned local server and set the model and endpoint as in the README. From the repository root, use the fixture command to check the parcel database and expected row counts offline. Each live command evaluates both paths with fresh model replies. [Server setup and environment](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --category-dev
+moon run --quiet --target native cmd/eval -- --live --category-dev > parcels-live.json
+moon run --quiet --target native cmd/eval -- --live --filter-dev > tools-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```

@@ -1,0 +1,66 @@
+[
+  {
+    "id": "tube-masses",
+    "question": "Give the masses of the tubes, one result per parcel.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]], [["Integer", "420"]], [["Integer", "630"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "shape"}, "Equal", ["Text", "tube"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE shape = 'tube'"}
+  },
+  {
+    "id": "crate-masses",
+    "question": "List the mass of each crate.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]], [["Integer", "980"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "shape"}, "Equal", ["Text", "crate"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE shape = 'crate'"}
+  },
+  {
+    "id": "pouch-masses",
+    "question": "What are the masses of the pouches?",
+    "ordered": false,
+    "expected_rows": [[["Integer", "110"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "shape"}, "Equal", ["Text", "pouch"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE shape = 'pouch'"}
+  },
+  {
+    "id": "missing-shape",
+    "question": "List the masses of the drums, one row for every matching parcel.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "shape"}, "Equal", ["Text", "drum"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE shape = 'drum'"}
+  },
+  {
+    "id": "all-masses",
+    "question": "Give the masses of all parcels, one result per parcel.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]], [["Integer", "420"]], [["Integer", "630"]], [["Integer", "420"]], [["Integer", "980"]], [["Integer", "110"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels"}
+  },
+  {
+    "id": "carrier-masses",
+    "question": "List the masses of parcels shipped by Oak Post.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]], [["Integer", "420"]], [["Integer", "110"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "carrier"}, "Equal", ["Text", "Oak Post"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE carrier = 'Oak Post'"}
+  },
+  {
+    "id": "named-parcel",
+    "question": "Give the mass of the parcel labeled River Bell.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "label"}, "Equal", ["Text", "River Bell"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE label = 'River Bell'"}
+  },
+  {
+    "id": "tube-repeat",
+    "question": "Show the mass for every tube, keeping repeated values.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "420"]], [["Integer", "420"]], [["Integer", "630"]]],
+    "fixture_plan": {"plan": {"from_table": "parcels", "select": [["Column", {"table": "parcels", "column": "mass_g"}]], "joins": [], "filters": [["Compare", {"table": "parcels", "column": "shape"}, "Equal", ["Text", "tube"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT mass_g FROM parcels WHERE shape = 'tube'"}
+  }
+]

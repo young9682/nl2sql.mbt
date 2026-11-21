@@ -482,3 +482,67 @@ async test "date projection skips equality for negation, alternatives and partia
     assert_eq(raw, None)
   }
 }
+
+///|
+async test "per-row category filter preserves duplicate weights across matching parcels" {
+  let db = "eval/category-dev/parcels.db"
+  let catalog = @sqlite.read_catalog(db)
+  let first =
+    #|{"plan":{"from_table":"parcels","select":[["Column",{"table":"parcels","column":"mass_g"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  let proposal =
+    #|{"equals":["shape","tube"]}
+  let (effective, raw) = @planner.review_text_filter(
+    catalog,
+    "Give the masses of the tubes, one result per parcel.",
+    first,
+    input => {
+      assert_true(@json.parse(input) is { "individual_rows": true, .. })
+      proposal
+    },
+  )
+  assert_eq(raw, Some(proposal))
+  guard @planner.execute_reply(db, catalog, effective) is Queried(result) else {
+    fail("expected a per-parcel query")
+  }
+  assert_eq(result.params, [Text("tube")])
+  let rows = result.result.rows
+  assert_eq(rows.length(), 3)
+  assert_eq(rows.filter(row => row == [Integer(420L)]).length(), 2)
+  assert_eq(rows.filter(row => row == [Integer(630L)]).length(), 1)
+  let pouch =
+    #|{"equals":["shape","pouch"]}
+  let propose_pouch : async (String) -> String = _ => pouch
+  for
+    (question, accepted) in [
+      ("What are the masses of the pouches?", true),
+      ("What are the masses of the pouch?", true),
+      ("What are the masses of the pouchesXYZ?", false),
+      ("What are the masses of the repouches?", false),
+      ("Give the mass recorded for 'pouches'.", false),
+    ] {
+    let (reviewed, _) = @planner.review_text_filter(
+      catalog, question, first, propose_pouch,
+    )
+    assert_eq(reviewed != first, accepted)
+  }
+}
+
+///|
+async test "aggregate equality review keeps its own context" {
+  let catalog = @sqlite.read_catalog("eval/category-dev/parcels.db")
+  let first =
+    #|{"plan":{"from_table":"parcels","select":[["Max",{"table":"parcels","column":"mass_g"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  let proposal =
+    #|{"equals":null}
+  let (effective, raw) = @planner.review_text_filter(
+    catalog,
+    "What is the highest mass across all parcels?",
+    first,
+    input => {
+      assert_false(input.contains("individual_rows"))
+      proposal
+    },
+  )
+  assert_eq(effective, first)
+  assert_eq(raw, Some(proposal))
+}
