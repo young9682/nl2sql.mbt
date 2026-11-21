@@ -113,18 +113,23 @@ The live comparison runs the same schema-only answerability check for both paths
 
 Both paths declined the questions about net profit and delivery dates. The six answerable questions kept their previous outcomes, including the valid empty result. Two runs produced identical reports. We used this question set to develop the check. [M3 answerability follow-up](eval/live-model-report.md#follow-up-with-a-shared-schema-answerability-check) · [Raw model replies](eval/results/qwen2.5-coder-1.5b-answerability.json)
 
-### Reproduce the comparison
+### CI fixture replays
 
-Replay the checked-in replies for both paths from the repository root.
+GitHub Actions runs the 8-question development set and the 20-question museum holdout as separate Native steps. Each step replays the checked-in structured plans and direct SQL replies against that set's bundled SQLite database. Both steps run without a model server or API key. The evaluator checks typed rows for answerable questions and requires explicit abstentions for unanswerable questions. Any mismatch fails the corresponding step. [CI workflow](.github/workflows/ci.yml)
+
+Run the same two commands locally from the repository root.
 
 ```bash
 moon run --quiet --target native cmd/eval -- --fixture
 moon run --quiet --target native cmd/eval -- --fixture --holdout
 ```
 
-For the live run, use the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, `llama.cpp b12503` Windows Vulkan build, and JSON grammar. Put `llama-server.exe` on your path and run the commands below in PowerShell from the directory containing the GGUF and grammar. Use `llama-server --list-devices` to choose the device for your system. [Pinned downloads and checksums](eval/live-model-report.md#reproduce)
+### Reproduce the comparison
+
+The live evaluation generates fresh replies for both paths with a local model. On Windows, use the Native prerequisites, the pinned Qwen2.5-Coder-1.5B-Instruct Q4_K_M weights, and the `llama.cpp b12503` Vulkan build. Put `llama-server.exe` on your path and run the following in PowerShell from the directory containing the GGUF. Use `llama-server --list-devices` to select the device for your system. [Native prerequisites](#native-cli-demo) · [Pinned downloads and checksums](eval/live-model-report.md#reproduce)
 
 ```powershell
+Invoke-WebRequest 'https://raw.githubusercontent.com/ggml-org/llama.cpp/b12503/grammars/json.gbnf' -OutFile json-b12503.gbnf
 $weights = (Resolve-Path .\qwen2.5-coder-1.5b-instruct-q4_k_m.gguf).Path
 $device = 'Vulkan1'
 llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
@@ -133,7 +138,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator. Add `--holdout` to select the museum database and its questions.
+In a second PowerShell session at the repository root, run the live evaluator. The `--live` command runs the development set, and `--live --holdout` runs the museum set. Each writes its own JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
