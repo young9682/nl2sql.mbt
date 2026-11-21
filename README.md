@@ -93,18 +93,18 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-On the 20-question museum holdout, the structured plan now answers **9/12 (75%)** answerable questions correctly, up from 8/12. Direct SQL scored **6/12 (50%)**. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We used a separate calendar database for development and froze the planner at `68b111d` before running the holdout twice. The two reports were byte-identical. [Museum questions](eval/holdout/questions.json) · [Calendar development questions](eval/binding-dev/questions.json) · [Raw museum results](eval/results/qwen2.5-coder-1.5b-museum-column-binding.json)
+The structured planner returned the correct typed rows for **10/12 (83.3%)** answerable museum questions, up from 9/12. Direct SQL scored **6/12 (50%)**. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We tuned the category review on separate parcel and tool databases and froze it at `e49ce2a` before reevaluating the 20 museum questions twice. Both reports were byte-identical. [Museum questions](eval/holdout/questions.json) · [Raw comparison](eval/results/qwen2.5-coder-1.5b-museum-category.json)
 
 | Museum metric | Structured plan, before → after | Direct SQL, before → after |
 | --- | ---: | ---: |
-| Correct results on answerable questions | 8/12 → 9/12 | 6/12 → 6/12 |
+| Correct results on answerable questions | 9/12 → 10/12 | 6/12 → 6/12 |
 | Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
 | False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
 | Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
 
-For “On what date did Ink Routes open?”, the previous plan searched the opening-date column for the exhibition title and returned zero rows. The reviewer now sees which column the plan will return. It selected `title = ?`, bound `Ink Routes` and read `2024-05-08` from `opens_on`. The other 19 structured results and all 20 direct SQL observations matched the baseline. Three structured queries still returned wrong rows for loans, painting values and recent requests. [Column binding report and reproduction](eval/live-model-report.md#name-and-date-column-binding) · [Previous filter review](eval/live-model-report.md#missing-text-filters-on-executable-plans)
+For the insured values of paintings, the planner previously returned values for all eight artworks. It now filters on `medium = ?` with the bound value `painting` and returns **34000 twice**, once for each painting. This was the only museum result that changed. Two structured queries still returned wrong rows, for loaned works and recent requests. [Category filtering report and reproduction](eval/live-model-report.md#category-filtering-with-duplicate-values) · [Earlier Ink Routes fix](eval/live-model-report.md#name-and-date-column-binding)
 
-On the calendar development set, the reviewer chose the expected filter or no filter in 10/10 isolated probes, including a date-shaped release name. End-to-end structured accuracy rose from 5/10 to 6/10. Across 17 English and Chinese controls for negation, alternatives and partial matches, the equality review made zero calls and preserved each supplied plan. The first generator can still mishandle these operators. [Calendar results](eval/results/qwen2.5-coder-1.5b-calendar-binding.json) · [Operator controls](planner/planner_test.mbt)
+On the parcel development set, two tubes and a crate all weigh 420 grams. The tube query returned 420, 420 and 630, preserving both matching 420s and excluding the crate. Structured accuracy rose from 5/8 to 7/8. A question about an absent parcel shape still returned all six rows. [Parcel questions](eval/category-dev/questions.json) · [Raw parcel results](eval/results/qwen2.5-coder-1.5b-parcels-category.json)
 
 ### Development set
 
@@ -143,7 +143,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, `--live --route-dev` for the eight radio questions, `--live --filter-dev` for the eleven tool questions, `--live --binding-dev` for the ten calendar questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
+In a second PowerShell session at the repository root, run the live evaluator. Use `--live` for the original eight development questions, `--live --join-dev` for the nine warehouse questions, `--live --route-dev` for the eight radio questions, `--live --filter-dev` for the eleven tool questions, `--live --binding-dev` for the ten calendar questions, `--live --category-dev` for the eight parcel questions, and `--live --holdout` for the twenty museum questions. Each writes its own JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -161,6 +161,8 @@ moon run --quiet --target native cmd/eval -- --live --filter-dev > nl2sql-filter
 if ($LASTEXITCODE -ne 0) { throw 'Tool development evaluation failed. Inspect nl2sql-filter-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --binding-dev > nl2sql-binding-dev.json
 if ($LASTEXITCODE -ne 0) { throw 'Calendar development evaluation failed. Inspect nl2sql-binding-dev.json.' }
+moon run --quiet --target native cmd/eval -- --live --category-dev > nl2sql-category-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'Parcel development evaluation failed. Inspect nl2sql-category-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```
