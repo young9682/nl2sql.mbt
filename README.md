@@ -93,18 +93,18 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-The structured planner returned the correct typed rows for **11/12 (91.7%)** answerable museum questions, up from 10/12. Direct SQL scored **6/12 (50%)**. Both paths used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. We fixed the implementation at `6c31da1` after tuning on a separate music-score checkout database, then ran the 20 museum questions twice. The two reports were byte-identical. [Museum questions](eval/holdout/questions.json) · [Raw museum comparison](eval/results/qwen2.5-coder-1.5b-museum-borrower.json)
+The structured planner now returns the expected typed rows for **12/12 answerable questions** on the fixed museum benchmark, up from 11/12. Direct SQL scored **6/12**. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. After developing the change on a separate booking database, we froze it at `4aa98a0` and ran both paths twice. The reports were byte-identical. This benchmark has been evaluated over multiple rounds. [Museum questions](eval/holdout/questions.json) · [Raw results](eval/results/qwen2.5-coder-1.5b-museum-range.json)
 
 | Museum metric | Structured plan, before → after | Direct SQL, before → after |
 | --- | ---: | ---: |
-| Correct results on answerable questions | 10/12 → 11/12 | 6/12 → 6/12 |
+| Correct results on answerable questions | 11/12 → 12/12 | 6/12 → 6/12 |
 | Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
 | False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
 | Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
 
-For artworks requested by Hill Library, the old structured plan tested `borrower IS NULL`, selected an extra ID and returned zero rows. The new plan binds `Hill Library` to `loans.borrower = ?` and selects only `artworks.title`. It returns **Night Market** and **River Loom**. This is the only museum observation that changed. The remaining structured error on recent Harbor Museum requests omits the borrower restriction and uses a strict lower date bound. [Named borrower report and reproduction](eval/live-model-report.md#named-borrowers-and-title-only-results) · [Previous category-filter report](eval/live-model-report.md#category-filtering-with-duplicate-values)
+The only changed case asked for Harbor Museum loan requests from June 1, 2024 onward. The new plan binds both `requested_on >= ?` and `borrower = ?` and returns one date, **2024-07-25**. [Date range report and reproduction](eval/live-model-report.md#named-parties-and-date-boundaries) · [Previous named borrower results](eval/live-model-report.md#named-borrowers-and-title-only-results)
 
-On the score checkout development set, structured accuracy rose from 2/8 to 7/8. Tests distinguish the same organization borrowing or lending, a genuinely unknown renter, an absent named renter, and explicit requests for titles, IDs or both. [Development questions](eval/borrower-dev/questions.json) · [Raw checkout results](eval/results/qwen2.5-coder-1.5b-scores-borrower.json)
+On the eight booking development questions, structured accuracy rose from 1/8 to 6/8. The customer query retained both matching rows on the start day and excluded another customer's row on the same day. Two development failures remain. One question using a strict lower bound received a false abstention, and a question with only a party name selected the provider column. [Booking questions](eval/range-dev/questions.json) · [Raw booking results](eval/results/qwen2.5-coder-1.5b-bookings-range.json)
 
 ### Development set
 
@@ -143,7 +143,7 @@ llama-server --model $weights --alias qwen2.5-coder-1.5b-instruct-q4_k_m `
   --no-cache-prompt --no-context-shift --no-webui --grammar-file .\json-b12503.gbnf
 ```
 
-In a second PowerShell session at the repository root, run both model paths on the selected question set. For the named borrower comparison, use `--live --borrower-dev` for the eight score-checkout questions and `--live --holdout` for the twenty museum questions. Each command below writes a separate JSON report.
+In a second PowerShell session at the repository root, run both model paths on the selected question set. For the party and date comparison, use `--live --range-dev` for the eight booking questions and `--live --holdout` for the twenty museum questions. Each command below writes a separate JSON report.
 
 ```powershell
 Invoke-RestMethod 'http://127.0.0.1:18084/health'
@@ -165,6 +165,8 @@ moon run --quiet --target native cmd/eval -- --live --category-dev > nl2sql-cate
 if ($LASTEXITCODE -ne 0) { throw 'Parcel development evaluation failed. Inspect nl2sql-category-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --borrower-dev > nl2sql-borrower-dev.json
 if ($LASTEXITCODE -ne 0) { throw 'Score checkout evaluation failed. Inspect nl2sql-borrower-dev.json.' }
+moon run --quiet --target native cmd/eval -- --live --range-dev > nl2sql-range-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'Booking date evaluation failed. Inspect nl2sql-range-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```

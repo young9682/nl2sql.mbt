@@ -434,3 +434,46 @@ moon run --quiet --target native cmd/eval -- --fixture --borrower-dev
 moon run --quiet --target native cmd/eval -- --live --borrower-dev > scores-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Named parties and date boundaries
+
+The archived museum plan for `recent-harbor-requests` selected request dates from all borrowers after June 1, 2024. It omitted the borrower equality and used a strict lower bound for an inclusive question. We developed the change on a separate booking database before rerunning the fixed museum benchmark. [Previous museum replies](results/qwen2.5-coder-1.5b-museum-borrower.json)
+
+### Booking development
+
+At `c3cf3c5` we fixed eight questions and a six-row SQLite database. Iris Studio has two bookings on March 10 and another on March 14. A different customer booked on March 10 as well, and Iris Studio also appears as a provider. Each query is scored on typed rows with multiplicity. [Questions and reference queries](range-dev/questions.json) · [Booking data](range-dev/bookings.sql)
+
+For a supported terminal calendar comparison, the structured planner supplies the comparison operator and ISO date to the model. For recognized transaction wording and a short capitalized party name, it can also supply an equality when the catalog contains one matching text role. Customer and supplier cues use separate roles. The model still selects the date column and generates the plan. This guidance is used for initial generation and invalid-plan retries. [Calendar and role selection](../planner/date_range.mbt) · [Regression tests](../planner/planner_test.mbt)
+
+| Correct rows on eight booking questions | Baseline | Frozen |
+| --- | ---: | ---: |
+| Structured plan | 1/8 | 6/8 |
+| Direct SQL | 0/8 | 0/8 |
+
+The inclusive customer query kept both March 10 bookings and March 14. The supplier query returned March 10 and March 12. The date-only query kept all five qualifying rows, and a named customer with no bookings on or after March 20 produced an empty result. The strict-after question still received a false abstention before plan generation. The party-only question still filtered by provider. The separate tool set scored 8/11 structured and 9/11 direct. [Baseline booking replies](results/qwen2.5-coder-1.5b-bookings-range-baseline.json) · [Frozen booking replies](results/qwen2.5-coder-1.5b-bookings-range.json)
+
+### Frozen museum date range comparison
+
+We froze the planner at `4aa98a0`, then ran both paths twice with the same 20 questions, SQLite snapshot, typed-row scorer, local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, llama.cpp b12503 on Vulkan1, JSON grammar, temperature 0 and seed 42. The reports were byte-identical. The museum set has been evaluated over multiple rounds.
+
+| Museum metric | Structured plan, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on answerable questions | 11/12 → 12/12 | 6/12 → 6/12 |
+| Correct abstentions on unanswerable questions | 8/8 → 8/8 | 8/8 → 8/8 |
+| False abstentions on answerable questions | 0/12 → 0/12 | 0/12 → 0/12 |
+| Invalid output across all questions | 0/20 → 0/20 | 0/20 → 0/20 |
+
+Only the structured observation for `recent-harbor-requests` changed. SQLite now binds `2024-06-01` and `Harbor Museum` to the two predicates below. The only result is `2024-07-25`. The booking development data independently checks the inclusive operator with matching records on the start day. All 20 direct SQL observations matched the previous run. Both paths recorded zero provider and execution failures. [Previous museum report](results/qwen2.5-coder-1.5b-museum-borrower.json) · [Frozen museum report](results/qwen2.5-coder-1.5b-museum-range.json)
+
+```sql
+SELECT "loans"."requested_on" FROM "loans"
+WHERE "loans"."requested_on" >= ? AND "loans"."borrower" = ?
+```
+
+Use `c3cf3c5` for the booking baseline and `4aa98a0` for the frozen planner. From the repository root, replay the fixture, then run the live comparisons with the pinned local endpoint and model. Each live command evaluates both paths. [Server setup and environment](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --range-dev
+moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
