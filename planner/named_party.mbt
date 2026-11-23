@@ -10,7 +10,11 @@ fn with_party_examples(
   catalog : @lib.Catalog,
   question : String,
 ) -> String {
-  let lower = " " + question.to_lower()
+  let input = " " + question
+  let lower = input.to_lower()
+  if date_range_prompt(catalog, input, lower) is Some(extra) {
+    return base + "\n" + extra
+  }
   let receive_phrases = [
     " requested by ", " borrowed by ", " rented by ", " checked out by ", " loaned to ",
     " lent to ",
@@ -22,40 +26,42 @@ fn with_party_examples(
   let supplying = supply_phrases
     .iter()
     .find_first(phrase => lower.contains(phrase))
-  let (phrase, examples, roles) = match (receiving, supplying) {
-    (Some(phrase), None) =>
-      (
-        phrase,
-        requester_examples,
-        ["borrower", "renter", "requester", "recipient", "customer"],
-      )
-    (None, Some(phrase)) =>
-      (
-        phrase,
-        supplier_example,
-        ["lender", "supplier", "provider", "vendor", "owner"],
-      )
+  let (phrase, examples, roles) : (String, String, ReadOnlyArray[String]) = match
+    (receiving, supplying) {
+    (Some(phrase), None) => (phrase, requester_examples, receiving_roles)
+    (None, Some(phrase)) => (phrase, supplier_example, supplying_roles)
     _ => return base
   }
   if !has_positive_party(lower, phrase) {
     return base
   }
   let prompt = base + "\n" + party_instructions + "\n" + examples
-  let candidates : Array[String] = []
+  match unique_text_role(catalog, roles) {
+    Some(role) =>
+      prompt +
+      "\nThe matching text role in this schema is " +
+      role.column +
+      ". Use that column for the party mentioned in the question."
+    None => prompt
+  }
+}
+
+///|
+fn unique_text_role(
+  catalog : @lib.Catalog,
+  roles : ReadOnlyArray[String],
+) -> @plan.ColumnRef? {
+  let candidates : Array[@plan.ColumnRef] = []
   for table in catalog.schema.tables {
     for column in table.columns {
       if is_text_column(column) && roles.contains(column.name.to_lower()) {
-        candidates.push(column.name)
+        candidates.push({ table: table.name, column: column.name, })
       }
     }
   }
   match candidates {
-    [role] =>
-      prompt +
-      "\nThe matching text role in this schema is " +
-      role +
-      ". Use that column for the party mentioned in the question."
-    _ => prompt
+    [role] => Some(role)
+    _ => None
   }
 }
 
@@ -99,3 +105,13 @@ let supplier_example =
   #|The party in this action supplies the item. Compare the lender or supplier column with the name given.
   #|Example: List device labels for reservations supplied by Reed Works. reservations.device_id references devices.id. The reservation has a customer and a vendor.
   #|{"plan":{"from_table":"reservations","select":[["Column",{"table":"devices","column":"label"}]],"joins":[{"table":"devices","via":"reservations"}],"filters":[["Compare",{"table":"reservations","column":"vendor"},"Equal",["Text","Reed Works"]]],"group_by":[],"order_by":[]}}
+
+///|
+let receiving_roles : ReadOnlyArray[String] = [
+  "borrower", "renter", "requester", "recipient", "customer",
+]
+
+///|
+let supplying_roles : ReadOnlyArray[String] = [
+  "lender", "supplier", "provider", "vendor", "owner",
+]

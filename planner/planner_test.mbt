@@ -630,3 +630,58 @@ async test "named checkout carries its role through a retry and returns only tit
   )
   assert_true(evidence.result.rows.contains([Text("Rain Canon")]))
 }
+
+///|
+test "dated transaction prompts bind the named party and the inclusive date separately" {
+  let catalog = @sqlite.read_catalog("eval/range-dev/bookings.db")
+  let prompt = @planner.plan_prompt_for(
+    catalog, "List the booking dates of reservations for Iris Studio from March 10, 2025 onward.",
+  )
+  assert_true(prompt.contains("GreaterEqual [\"Text\",\"2025-03-10\"]"))
+  assert_true(
+    prompt.contains(
+      "[\"Compare\",{\"table\":\"bookings\",\"column\":\"customer\"},\"Equal\",[\"Text\",\"Iris Studio\"]]",
+    ),
+    msg=prompt,
+  )
+}
+
+///|
+test "date range hints distinguish inclusive and exclusive bounds and skip compound dates" {
+  let catalog = @sqlite.read_catalog("eval/range-dev/bookings.db")
+  for
+    (question, expected) in [
+      (
+        "List booking dates after 2024-02-29.", "Greater [\"Text\",\"2024-02-29\"]",
+      ),
+      (
+        "List booking dates before April 1, 2025.", "Less [\"Text\",\"2025-04-01\"]",
+      ),
+      (
+        "Give booking dates on or before 2025-03-08.", "LessEqual [\"Text\",\"2025-03-08\"]",
+      ),
+      (
+        "List booking dates on or after March 10 2025.", "GreaterEqual [\"Text\",\"2025-03-10\"]",
+      ),
+    ] {
+    let prompt = @planner.plan_prompt_for(catalog, question)
+    assert_true(prompt.contains(expected))
+    assert_false(prompt.contains("Additional required Compare predicate"))
+  }
+  for
+    question in [
+      "Show booking dates not after March 10, 2025.", "Show booking dates after March 3, 2025 and before March 10, 2025.",
+      "Show booking dates before 2025-02-29.", "Show booking dates after April 31, 2025.",
+      "Show booking dates from Birch Hall.", "Show delivery times after shipping costs.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let party = @planner.plan_prompt_for(
+    catalog, "List booking dates supplied by Iris Studio from 2025-03-10 onwards.",
+  )
+  assert_true(party.contains("\"column\":\"provider\""))
+  let item = @planner.plan_prompt_for(
+    catalog, "List booking dates of exhibits for Silver Oak from 2025-03-10 onward.",
+  )
+  assert_false(item.contains("Additional required Compare predicate"))
+}
