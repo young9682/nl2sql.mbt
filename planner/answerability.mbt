@@ -56,7 +56,7 @@ let schema_review_examples : Array[(String, String)] = [
 
 ///|
 /// Creates a schema-only answerability model using Chat Completions. An
-/// initial approval also goes through a review for a missing schema column.
+/// second review checks approvals and explicit refusals that contradict the catalog.
 pub fn openai_answerability_model(
   endpoint : String,
   model : String,
@@ -77,10 +77,15 @@ pub fn openai_answerability_model(
     })
     let input = "Tables: \{tables.join("\n")} Question: \{question}"
     let initial = assess(answerability_prompt, input)
-    let approved = try (parse_answerability(initial) is None) catch {
+    let needs_review = try {
+      match parse_answerability(initial) {
+        None => true
+        Some(reason) => contradicts_catalog(catalog, reason)
+      }
+    } catch {
       _ => false
     }
-    if approved {
+    if needs_review {
       let reply = review(schema_review_prompt, input)
       let assessment : Json = { "schema_review": Json::string(reply) }
       assessment.stringify()
@@ -88,6 +93,30 @@ pub fn openai_answerability_model(
       initial
     }
   }
+}
+
+///|
+/// Check only explicit, single-column claims with a named table. Vague reasons
+/// and claims about a missing row cannot be disproved from column names.
+fn contradicts_catalog(catalog : @lib.Catalog, reason : String) -> Bool {
+  let statement = reason.trim().to_owned().to_lower()
+  for quote in ["'", "\"", "`"] {
+    guard statement.strip_prefix("the " + quote) is Some(rest) &&
+      rest.split_once(quote + " column is missing in the " + quote)
+      is Some((column, table_tail)) &&
+      table_tail.strip_suffix(quote + " table.") is Some(table) &&
+      is_simple_identifier(column.to_owned()) &&
+      is_simple_identifier(table.to_owned()) else {
+      continue
+    }
+    let table = table.to_owned()
+    let column = column.to_owned()
+    return catalog.schema.tables.any(entry => {
+      entry.name.to_lower() == table &&
+      entry.columns.any(field => field.name.to_lower() == column)
+    })
+  }
+  false
 }
 
 ///|

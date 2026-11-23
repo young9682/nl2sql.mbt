@@ -88,14 +88,22 @@ async test "schema review preserves an initial refusal and lets an empty query r
   defer server.close()
   @async.with_task_group() <| group => {
     let initial_refusal = "{\"no_answer\":\"The schema has no logins.\"}"
+    let contradictory =
+      #|{"no_answer":"The 'amount' column is missing in the 'ORDERS' table."}
+    let genuine_missing =
+      #|{"no_answer":"The 'logins' column is missing in the 'users' table."}
+    let row_claim =
+      #|{"no_answer":"No order has the requested amount."}
     let review_refusal = "{\"missing_column\":[\"orders\",\"contract_rate\"]}"
     group.spawn_bg(() => {
       for
         (review, reply) in [
           (false, initial_refusal),
+          (false, genuine_missing),
+          (false, row_claim),
           (false, "{\"supported\":true}"),
           (true, review_refusal),
-          (false, "{\"supported\":true}"),
+          (false, contradictory),
           (true, "{\"missing_column\":[\"orders\",\"amount\"]}"),
         ] {
         let (connection, _) = server.accept()
@@ -124,6 +132,11 @@ async test "schema review preserves an initial refusal and lets an empty query r
     assert_eq(
       assess(catalog, "When did each user first log in?"),
       initial_refusal,
+    )
+    assert_eq(assess(catalog, "When did each user log in?"), genuine_missing)
+    assert_eq(
+      assess(catalog, "Which order has the requested amount?"),
+      row_claim,
     )
     assert_eq(
       assess(catalog, "What were the contract rates?"),
