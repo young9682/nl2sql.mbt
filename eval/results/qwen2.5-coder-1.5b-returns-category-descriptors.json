@@ -1,0 +1,492 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/descriptor-dev/returns.db",
+  "questions": "eval/descriptor-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 6,
+      "total": 8,
+      "rate": 0.75
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "invalid_output_rate": {
+      "count": 3,
+      "total": 8,
+      "rate": 0.375
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "column-prefix",
+      "question": "Give the return dates for the category cables.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-01"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\" WHERE \"returns_log\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "cables"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-01"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"category\",\"cables\"]}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: category_cables\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.return_date FROM returns_log AS T1 INNER JOIN category_cables AS T2 ON T1.category = T2.category\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "stored-prefix",
+      "question": "List return dates whose stored category is category adapters.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-03"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"returns_log\",\"column\":\"category\"},\"Equal\",[\"Text\",\"category adapters\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\" WHERE \"returns_log\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "category adapters"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-03"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT received_on FROM returns_log WHERE category = 'category adapters'\"}",
+        "sql": "SELECT received_on FROM returns_log WHERE category = 'category adapters'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-03"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-value",
+      "question": "Show the return date for the category \"category adapters\".",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-03"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"returns_log\",\"column\":\"category\"},\"Equal\",[\"Text\",\"category adapters\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\" WHERE \"returns_log\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "category adapters"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-03"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: categories\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.return_date FROM returns_log AS T1 INNER JOIN categories AS T2 ON T1.category = T2.name WHERE T2.name = 'category adapters'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-absent",
+      "question": "Show the return dates for the category \"category cables\".",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"returns_log\",\"column\":\"category\"},\"Equal\",[\"Text\",\"category cables\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\" WHERE \"returns_log\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "category cables"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT received_on FROM returns_log WHERE category = 'category cables'\"}",
+        "sql": "SELECT received_on FROM returns_log WHERE category = 'category cables'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "different-field",
+      "question": "Give the return date for the label \"category cables\".",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-05"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "The label 'category cables' is not present in the returns_log table.",
+        "answerability_reply": "{\"no_answer\":\"The label 'category cables' is not present in the returns_log table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "The label 'category cables' is not present in the returns_log table.",
+        "answerability_reply": "{\"no_answer\":\"The label 'category cables' is not present in the returns_log table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "no-exact-candidate",
+      "question": "List return dates for the category missing clips.",
+      "expected_rows": [],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "The category 'missing clips' is not present in the returns_log table.",
+        "answerability_reply": "{\"no_answer\":\"The category 'missing clips' is not present in the returns_log table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "FalseAbstention",
+        "detail": "The category 'missing clips' is not present in the returns_log table.",
+        "answerability_reply": "{\"no_answer\":\"The category 'missing clips' is not present in the returns_log table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "multitoken-value",
+      "question": "Give the return dates for the category metal clips.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-06"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\" WHERE \"returns_log\".\"category\" = ?",
+        "params": [
+          [
+            "Text",
+            "metal clips"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-06"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"category\",\"metal clips\"]}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: category\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"returns_log\\\",\\\"received_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.return_date FROM returns_log AS T1 INNER JOIN category AS T2 ON T1.category = T2.category WHERE T2.category = 'metal clips'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-rows",
+      "question": "List all return dates.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-10-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-02"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-04"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-05"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-10-06"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"returns_log\",\"select\":[[\"Column\",{\"table\":\"returns_log\",\"column\":\"received_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"returns_log\".\"received_on\" FROM \"returns_log\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-02"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-04"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-06"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT received_on FROM returns_log\"}",
+        "sql": "SELECT DISTINCT received_on FROM returns_log",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-10-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-02"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-04"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-10-06"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

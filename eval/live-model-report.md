@@ -549,3 +549,27 @@ moon run --quiet --target native cmd/eval -- --live --plural-dev > inspections-l
 moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Category column names in values
+
+In the inspection baseline, the filter reviewer copied `kind plates` into an equality on `kind`. The planner now checks the entire unquoted value in the selected category column. If the complete value is absent and its leading word repeats the chosen column name, the planner checks the rest of the phrase as an exact value in that same column. For this case, SQLite binds `plates` and returns `2025-08-07`. The model still proposes `kind plates`. [Implementation](../planner/category_value.mbt) · [Previous inspection results](results/qwen2.5-coder-1.5b-inspections-plural.json) · [New inspection results](results/qwen2.5-coder-1.5b-inspections-category-descriptors.json)
+
+The separate returns dataset contains both `cable` and `cables`, and both `category adapters` and `adapters`. Regression tests inject a reviewer proposal to verify that the repeated column prefix is removed only when the alternative exists. They also cover case variations in the prefix, multiword values, another column's name, quoted values, empty results and duplicate rows. The live returns model already proposed `cables` on the relevant question, so that case exercises the new behavior in the deterministic test. [Questions](descriptor-dev/questions.json) · [SQLite data](descriptor-dev/returns.sql) · [Regression test](../planner/planner_test.mbt)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on inspection questions | 5/8 → 6/8 | 2/8 → 2/8 |
+| Correct rows on returns questions | 6/8 → 6/8 | 2/8 → 2/8 |
+
+Only the `exact-plural` inspection case changed. The two remaining inspection failures were a malformed plan for wrenches and a false abstention for funnels. The returns reports matched byte for byte. Both paths falsely declined two answerable returns questions. The rental report also matched the previous run. [Returns results](results/qwen2.5-coder-1.5b-returns-category-descriptors.json)
+
+After freezing the planner at `02ff67b`, we reran both paths twice on the fixed museum set with local Qwen2.5-Coder-1.5B-Instruct Q4_K_M and the existing runtime settings and snapshot. Both reports matched the archived report byte for byte. The structured and direct paths answered 12/12 and 6/12 answerable questions correctly, respectively. Both correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum results](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Use `58c1a1d` for the baseline and `02ff67b` for the frozen planner. Start the pinned server and run the commands from the repository root. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --descriptor-dev
+moon run --quiet --target native cmd/eval -- --live --descriptor-dev > returns-live.json
+moon run --quiet --target native cmd/eval -- --live --plural-dev > inspections-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
