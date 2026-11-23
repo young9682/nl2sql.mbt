@@ -93,7 +93,7 @@ The reply decoder treats `"limit": null` as an omitted limit and accepts a quote
 
 ### Independent museum holdout
 
-The structured planner now returns the expected typed rows for **12/12 answerable questions** on the fixed museum benchmark, up from 11/12. Direct SQL scored **6/12**. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. After developing the change on a separate booking database, we froze it at `4aa98a0` and ran both paths twice. The reports were byte-identical, including after the party-only follow-up at `b9b3dce`. This benchmark has been evaluated over multiple rounds. [Museum questions](eval/holdout/questions.json) · [Raw results](eval/results/qwen2.5-coder-1.5b-museum-range.json)
+The structured planner now returns the expected typed rows for **12/12 answerable questions** on the fixed museum benchmark, up from 11/12. Direct SQL scored **6/12**. Both used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M. After developing the change on a separate booking database, we froze it at `4aa98a0` and ran both paths twice. The reports were byte-identical, including after the plural category follow-up at `6dedfcd`. This benchmark has been evaluated over multiple rounds. [Museum questions](eval/holdout/questions.json) · [Raw results](eval/results/qwen2.5-coder-1.5b-museum-range.json)
 
 | Museum metric | Structured plan, before → after | Direct SQL, before → after |
 | --- | ---: | ---: |
@@ -104,7 +104,7 @@ The structured planner now returns the expected typed rows for **12/12 answerabl
 
 The only changed case asked for Harbor Museum loan requests from June 1, 2024 onward. The new plan binds both `requested_on >= ?` and `borrower = ?` and returns one date, **2024-07-25**. [Date range report and reproduction](eval/live-model-report.md#named-parties-and-date-boundaries) · [Previous named borrower results](eval/live-model-report.md#named-borrowers-and-title-only-results)
 
-On the eight booking development questions, structured accuracy rose from 1/8 to 6/8 with the date comparison, to 7/8 after reviewing a contradicted refusal, and to 8/8 after grounding the customer in the party-only question. The separate rental set scored 7/8 with the structured planner and 4/8 with direct SQL. [Booking results](eval/results/qwen2.5-coder-1.5b-bookings-party.json) · [Party-only comparison](eval/live-model-report.md#receiving-parties-without-a-date-condition)
+On the eight booking development questions, structured accuracy rose from 1/8 to 6/8 with the date comparison, to 7/8 after reviewing a contradicted refusal, and to 8/8 after grounding the customer in the party-only question. The separate rental set reached 8/8 with the structured planner after resolving plural categories against stored values. Direct SQL scored 4/8. [Booking results](eval/results/qwen2.5-coder-1.5b-bookings-party.json) · [Party-only comparison](eval/live-model-report.md#receiving-parties-without-a-date-condition) · [Plural category comparison](eval/live-model-report.md#plural-category-values)
 
 ### Development set
 
@@ -171,6 +171,8 @@ moon run --quiet --target native cmd/eval -- --live --refusal-dev > nl2sql-refus
 if ($LASTEXITCODE -ne 0) { throw 'Screening evaluation failed. Inspect nl2sql-refusal-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --party-dev > nl2sql-party-dev.json
 if ($LASTEXITCODE -ne 0) { throw 'Rental party evaluation failed. Inspect nl2sql-party-dev.json.' }
+moon run --quiet --target native cmd/eval -- --live --plural-dev > nl2sql-plural-dev.json
+if ($LASTEXITCODE -ne 0) { throw 'Inspection category evaluation failed. Inspect nl2sql-plural-dev.json.' }
 moon run --quiet --target native cmd/eval -- --live --holdout > nl2sql-museum-holdout.json
 if ($LASTEXITCODE -ne 0) { throw 'Holdout evaluation failed. Inspect nl2sql-museum-holdout.json.' }
 ```

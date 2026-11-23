@@ -525,3 +525,27 @@ moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.j
 moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Plural category values
+
+The rental model proposed `tripods` for the `item` column. SQLite stored the category as `tripod`, so the bound equality returned zero rows. The structured planner now checks an eligible unquoted category proposal against the local database. It preserves an exact stored match, and otherwise uses a regular singular candidate only if exactly one candidate exists in the same column. The probe uses a read-only query with bound parameters and the configured query timeout. Quoted values and name columns use their original equality. The extra query takes place only for an eligible filter-review proposal. No database values are sent to the model. [Implementation](../planner/category_value.mbt) · [Regression tests](../planner/planner_test.mbt)
+
+The independent inspection database at `5d3afc1` contains singular categories, a literal plural that coexists with a singular, and two labels that differ by a final `s`. The regression test passes model proposals directly to the review step. It verifies regular and sibilant plurals, duplicate rows, exact stored plurals, quoted values, valid empty results and fallbacks when a local lookup is unavailable. [Inspection questions](plural-dev/questions.json) · [SQLite data](plural-dev/inspections.sql)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on rental questions | 7/8 → 8/8 | 4/8 → 4/8 |
+| Correct rows on inspection questions | 4/8 → 5/8 | 2/8 → 2/8 |
+
+The corrected rental query returned three dates with `item = 'tripod'`. The inspection query for gaskets returned three rows, preserving the repeated date. Three inspection failures remain. A query for wrenches failed plan validation, another proposed the whole phrase `kind plates`, and the query for funnels was refused before planning. The rental set still has the previously documented empty-result case where the model uses the wrong role. [Previous rental results](results/qwen2.5-coder-1.5b-rentals-party.json) · [Frozen rental results](results/qwen2.5-coder-1.5b-rentals-plural.json) · [Inspection baseline](results/qwen2.5-coder-1.5b-inspections-plural-baseline.json) · [Frozen inspection results](results/qwen2.5-coder-1.5b-inspections-plural.json)
+
+After freezing the planner at `6dedfcd`, we ran both paths twice on the fixed museum set with the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, runtime, seed and SQLite snapshot. Both reports matched the archived result byte for byte. The answerable scores were 12/12 structured and 6/12 direct. Both paths correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. The booking reports also matched the preceding comparison. [Museum results](results/qwen2.5-coder-1.5b-museum-range.json)
+
+From the repository root, start the pinned local model and use `5d3afc1` for the inspection baseline or `6dedfcd` for the frozen planner. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --plural-dev
+moon run --quiet --target native cmd/eval -- --live --plural-dev > inspections-live.json
+moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
