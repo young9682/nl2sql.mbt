@@ -477,3 +477,99 @@ moon run --quiet --target native cmd/eval -- --fixture --range-dev
 moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Reviewing catalog contradictions in refusals
+
+The booking question asking for dates for Iris Studio strictly after March 10, 2025 was refused by both paths before generation. The initial assessment claimed `bookings.provider` was absent even though the catalog lists it. The shared adapter now sends precise, quoted single-column claims contradicted by the named table to the existing schema review. The reviewer checks for a missing fact, and the final decision uses the live catalog. [Adapter](../planner/answerability.mbt) · [Regression test](../planner/planner_test.mbt) · [Baseline booking results](results/qwen2.5-coder-1.5b-bookings-range.json)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on eight booking questions | 6/8 → 7/8 | 0/8 → 0/8 |
+| False abstentions on eight booking questions | 1/8 → 0/8 | 1/8 → 0/8 |
+| Correct abstentions on four missing screening facts | 4/4 → 4/4 | 4/4 → 4/4 |
+| Correct rows on four answerable screening questions | 4/4 → 4/4 | 0/4 → 0/4 |
+
+The structured booking query bound the customer and the exclusive date, returning March 14. Direct SQL ran but used the provider column and returned March 12. On the screening development set, the structured planner returned both valid empty results and correctly refused all four missing facts. The direct path passed the four refusals and produced invalid SQL for the four answerable questions. The screening reports matched byte for byte before and after the change. [Frozen booking results](results/qwen2.5-coder-1.5b-bookings-refusal-review.json) · [Screening questions](refusal-dev/questions.json) · [Raw screening results](results/qwen2.5-coder-1.5b-screenings-refusal-review.json)
+
+We fixed the planner at `a12f327` before two fresh museum runs, using the same local model, SQLite snapshot and runtime settings as the preceding comparison. Both reports matched the archived museum report byte for byte. On the fixed 20-question benchmark, the structured and direct paths scored 12/12 and 6/12 on answerable questions, respectively. Both declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum report](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Run the following from the repository root after starting the pinned local server. Use `10fc5ca` for the baseline and `a12f327` for the frozen implementation. [Model and endpoint setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --refusal-dev
+moon run --quiet --target native cmd/eval -- --live --refusal-dev > screenings-live.json
+moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
+
+## Receiving parties without a date condition
+
+In the booking baseline, the question asking for Iris Studio's booking dates produced an unfiltered plan. The equality review selected `provider` and returned dates for transactions Iris Studio supplied. The planner now shares the named-party recognition used for date comparisons with eligible party-only questions. It gives the model a bound equality suggestion for supported transaction wording with one catalogued receiving role and a short, capitalized name. It preserves the original spelling inside matched quotes. Cases that specify an item, ask about an unknown renter or leave the party ambiguous retain their existing prompts. [Planner](../planner/named_party.mbt) · [Regression test](../planner/planner_test.mbt)
+
+The separate rental database contains Amber Guild as both renter and owner on different rows, a repeated rental date, a null renter and equipment categories. Its eight questions were fixed at `e66ee55`. No rental rows are included in the model prompt. [Questions and fixture plans](party-dev/questions.json) · [SQLite data](party-dev/rentals.sql)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on booking questions | 7/8 → 8/8 | 0/8 → 0/8 |
+| Correct rows on rental questions | 4/8 → 7/8 | 4/8 → 4/8 |
+
+The booking query now binds `Iris Studio` to `customer` and returns March 9, March 10 twice and March 14. Three rental questions recovered, including the quoted party name. The explicit owner query still uses `owner`, and the unknown-renter question uses `IS NULL`. The absent named renter scored as correct because the query returned the expected empty result, although its filter used the wrong role. The equipment question still binds the plural `tripods` against singular stored values. The earlier score-checkout reports matched byte for byte. [Previous booking report](results/qwen2.5-coder-1.5b-bookings-refusal-review.json) · [New booking report](results/qwen2.5-coder-1.5b-bookings-party.json) · [Rental baseline](results/qwen2.5-coder-1.5b-rentals-party-baseline.json) · [New rental report](results/qwen2.5-coder-1.5b-rentals-party.json)
+
+After freezing the implementation at `b9b3dce`, we ran both paths twice on the fixed museum set. The runs used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, pinned llama.cpp Vulkan runtime, SQLite snapshot and generation settings. Both outputs matched the archived report byte for byte. Structured accuracy was 12/12 and direct SQL accuracy was 6/12. Each path correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum report](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Use `e66ee55` for the baseline and `b9b3dce` for the frozen planner. Run these commands from the repository root after starting the pinned local server. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --party-dev
+moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.json
+moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
+
+## Plural category values
+
+The rental model proposed `tripods` for the `item` column. SQLite stored the category as `tripod`, so the bound equality returned zero rows. The structured planner now checks an eligible unquoted category proposal against the local database. It preserves an exact stored match, and otherwise uses a regular singular candidate only if exactly one candidate exists in the same column. The probe uses a read-only query with bound parameters and the configured query timeout. Quoted values and name columns use their original equality. The extra query takes place only for an eligible filter-review proposal. No database values are sent to the model. [Implementation](../planner/category_value.mbt) · [Regression tests](../planner/planner_test.mbt)
+
+The independent inspection database at `5d3afc1` contains singular categories, a literal plural that coexists with a singular, and two labels that differ by a final `s`. The regression test passes model proposals directly to the review step. It verifies regular and sibilant plurals, duplicate rows, exact stored plurals, quoted values, valid empty results and fallbacks when a local lookup is unavailable. [Inspection questions](plural-dev/questions.json) · [SQLite data](plural-dev/inspections.sql)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on rental questions | 7/8 → 8/8 | 4/8 → 4/8 |
+| Correct rows on inspection questions | 4/8 → 5/8 | 2/8 → 2/8 |
+
+The corrected rental query returned three dates with `item = 'tripod'`. The inspection query for gaskets returned three rows, preserving the repeated date. Three inspection failures remain. A query for wrenches failed plan validation, another proposed the whole phrase `kind plates`, and the query for funnels was refused before planning. The rental set still has the previously documented empty-result case where the model uses the wrong role. [Previous rental results](results/qwen2.5-coder-1.5b-rentals-party.json) · [Frozen rental results](results/qwen2.5-coder-1.5b-rentals-plural.json) · [Inspection baseline](results/qwen2.5-coder-1.5b-inspections-plural-baseline.json) · [Frozen inspection results](results/qwen2.5-coder-1.5b-inspections-plural.json)
+
+After freezing the planner at `6dedfcd`, we ran both paths twice on the fixed museum set with the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, runtime, seed and SQLite snapshot. Both reports matched the archived result byte for byte. The answerable scores were 12/12 structured and 6/12 direct. Both paths correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. The booking reports also matched the preceding comparison. [Museum results](results/qwen2.5-coder-1.5b-museum-range.json)
+
+From the repository root, start the pinned local model and use `5d3afc1` for the inspection baseline or `6dedfcd` for the frozen planner. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --plural-dev
+moon run --quiet --target native cmd/eval -- --live --plural-dev > inspections-live.json
+moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
+
+## Category column names in values
+
+In the inspection baseline, the filter reviewer copied `kind plates` into an equality on `kind`. The planner now checks the entire unquoted value in the selected category column. If the complete value is absent and its leading word repeats the chosen column name, the planner checks the rest of the phrase as an exact value in that same column. For this case, SQLite binds `plates` and returns `2025-08-07`. The model still proposes `kind plates`. [Implementation](../planner/category_value.mbt) · [Previous inspection results](results/qwen2.5-coder-1.5b-inspections-plural.json) · [New inspection results](results/qwen2.5-coder-1.5b-inspections-category-descriptors.json)
+
+The separate returns dataset contains both `cable` and `cables`, and both `category adapters` and `adapters`. Regression tests inject a reviewer proposal to verify that the repeated column prefix is removed only when the alternative exists. They also cover case variations in the prefix, multiword values, another column's name, quoted values, empty results and duplicate rows. The live returns model already proposed `cables` on the relevant question, so that case exercises the new behavior in the deterministic test. [Questions](descriptor-dev/questions.json) · [SQLite data](descriptor-dev/returns.sql) · [Regression test](../planner/planner_test.mbt)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on inspection questions | 5/8 → 6/8 | 2/8 → 2/8 |
+| Correct rows on returns questions | 6/8 → 6/8 | 2/8 → 2/8 |
+
+Only the `exact-plural` inspection case changed. The two remaining inspection failures were a malformed plan for wrenches and a false abstention for funnels. The returns reports matched byte for byte. Both paths falsely declined two answerable returns questions. The rental report also matched the previous run. [Returns results](results/qwen2.5-coder-1.5b-returns-category-descriptors.json)
+
+After freezing the planner at `02ff67b`, we reran both paths twice on the fixed museum set with local Qwen2.5-Coder-1.5B-Instruct Q4_K_M and the existing runtime settings and snapshot. Both reports matched the archived report byte for byte. The structured and direct paths answered 12/12 and 6/12 answerable questions correctly, respectively. Both correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum results](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Use `58c1a1d` for the baseline and `02ff67b` for the frozen planner. Start the pinned server and run the commands from the repository root. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --descriptor-dev
+moon run --quiet --target native cmd/eval -- --live --descriptor-dev > returns-live.json
+moon run --quiet --target native cmd/eval -- --live --plural-dev > inspections-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```

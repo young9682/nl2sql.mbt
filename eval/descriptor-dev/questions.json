@@ -1,0 +1,66 @@
+[
+  {
+    "id": "column-prefix",
+    "question": "Give the return dates for the category cables.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-01"]], [["Text", "2025-10-01"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "cables"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'cables'"}
+  },
+  {
+    "id": "stored-prefix",
+    "question": "List return dates whose stored category is category adapters.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-03"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "category adapters"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'category adapters'"}
+  },
+  {
+    "id": "quoted-value",
+    "question": "Show the return date for the category \"category adapters\".",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-03"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "category adapters"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'category adapters'"}
+  },
+  {
+    "id": "quoted-absent",
+    "question": "Show the return dates for the category \"category cables\".",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "category cables"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'category cables'"}
+  },
+  {
+    "id": "different-field",
+    "question": "Give the return date for the label \"category cables\".",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-05"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "label"}, "Equal", ["Text", "category cables"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE label = 'category cables'"}
+  },
+  {
+    "id": "no-exact-candidate",
+    "question": "List return dates for the category missing clips.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "missing clips"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'missing clips'"}
+  },
+  {
+    "id": "multitoken-value",
+    "question": "Give the return dates for the category metal clips.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-06"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [["Compare", {"table": "returns_log", "column": "category"}, "Equal", ["Text", "metal clips"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log WHERE category = 'metal clips'"}
+  },
+  {
+    "id": "all-rows",
+    "question": "List all return dates.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-10-01"]], [["Text", "2025-10-01"]], [["Text", "2025-10-02"]], [["Text", "2025-10-03"]], [["Text", "2025-10-04"]], [["Text", "2025-10-05"]], [["Text", "2025-10-06"]]],
+    "fixture_plan": {"plan": {"from_table": "returns_log", "select": [["Column", {"table": "returns_log", "column": "received_on"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT received_on FROM returns_log"}
+  }
+]

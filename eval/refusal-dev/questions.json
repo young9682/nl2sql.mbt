@@ -1,0 +1,62 @@
+[
+  {
+    "id": "known-venue",
+    "question": "Show the screening dates at Larch Theater after September 4, 2025.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-09-06"]]],
+    "fixture_plan": {"plan": {"from_table": "screenings", "select": [["Column", {"table": "screenings", "column": "screened_on"}]], "joins": [], "filters": [["Compare", {"table": "screenings", "column": "venue"}, "Equal", ["Text", "Larch Theater"]], ["Compare", {"table": "screenings", "column": "screened_on"}, "Greater", ["Text", "2025-09-04"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT screened_on FROM screenings WHERE venue = 'Larch Theater' AND screened_on > '2025-09-04'"}
+  },
+  {
+    "id": "empty-venue",
+    "question": "Give screening dates at a venue named Cedar Hall.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "screenings", "select": [["Column", {"table": "screenings", "column": "screened_on"}]], "joins": [], "filters": [["Compare", {"table": "screenings", "column": "venue"}, "Equal", ["Text", "Cedar Hall"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT screened_on FROM screenings WHERE venue = 'Cedar Hall'"}
+  },
+  {
+    "id": "empty-range",
+    "question": "List screening dates at Larch Theater after September 30, 2025.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "screenings", "select": [["Column", {"table": "screenings", "column": "screened_on"}]], "joins": [], "filters": [["Compare", {"table": "screenings", "column": "venue"}, "Equal", ["Text", "Larch Theater"]], ["Compare", {"table": "screenings", "column": "screened_on"}, "Greater", ["Text", "2025-09-30"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT screened_on FROM screenings WHERE venue = 'Larch Theater' AND screened_on > '2025-09-30'"}
+  },
+  {
+    "id": "known-title",
+    "question": "What is the title that screened at Reed Cinema?",
+    "ordered": false,
+    "expected_rows": [[["Text", "Stars"]]],
+    "fixture_plan": {"plan": {"from_table": "screenings", "select": [["Column", {"table": "screenings", "column": "title"}]], "joins": [], "filters": [["Compare", {"table": "screenings", "column": "venue"}, "Equal", ["Text", "Reed Cinema"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT title FROM screenings WHERE venue = 'Reed Cinema'"}
+  },
+  {
+    "id": "missing-admissions",
+    "question": "How many tickets were actually sold at Larch Theater?",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "The database does not record the requested fact."},
+    "fixture_sql": {"no_answer": "The database does not record the requested fact."}
+  },
+  {
+    "id": "missing-rating",
+    "question": "What age rating does the title Dunes have?",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "The database does not record the requested fact."},
+    "fixture_sql": {"no_answer": "The database does not record the requested fact."}
+  },
+  {
+    "id": "missing-cancellation",
+    "question": "When was the Rain screening cancelled?",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "The database does not record the requested fact."},
+    "fixture_sql": {"no_answer": "The database does not record the requested fact."}
+  },
+  {
+    "id": "missing-price",
+    "question": "What was the ticket price for screenings at Larch Theater on September 6, 2025?",
+    "ordered": false,
+    "fixture_plan": {"no_answer": "The database does not record the requested fact."},
+    "fixture_sql": {"no_answer": "The database does not record the requested fact."}
+  }
+]

@@ -59,7 +59,14 @@ pub async fn ask(
     )
   } else {
     let effective = if review_filter is Some(review) {
-      let (plan, _) = review_text_filter(catalog, question, reply, review)
+      let (plan, _) = review_text_filter(
+        catalog,
+        question,
+        reply,
+        review,
+        db_path=Some(path),
+        timeout_ms~,
+      )
       plan
     } else {
       reply

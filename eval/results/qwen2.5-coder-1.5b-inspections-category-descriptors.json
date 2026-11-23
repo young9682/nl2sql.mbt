@@ -1,0 +1,536 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/plural-dev/inspections.db",
+  "questions": "eval/plural-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 6,
+      "total": 8,
+      "rate": 0.75
+    },
+    "invalid_output_rate": {
+      "count": 1,
+      "total": 8,
+      "rate": 0.125
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 1,
+      "total": 8,
+      "rate": 0.125
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "invalid_output_rate": {
+      "count": 5,
+      "total": 8,
+      "rate": 0.625
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "ordinary-plural",
+      "question": "Give the inspection dates for gaskets.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-02"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\" WHERE \"inspections\".\"kind\" = ?",
+        "params": [
+          [
+            "Text",
+            "gasket"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-02"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"kind\",\"gaskets\"]}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: gaskets\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.checked_on FROM inspections AS T1 INNER JOIN gaskets AS T2 ON T1.id = T2.inspection_id\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "sibilant-plural",
+      "question": "Show the inspection dates for wrenches.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-04"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "InvalidOutput",
+        "detail": "UnknownTable(\"wrenches\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"wrenches\",\"select\":[[\"Column\",{\"table\":\"wrenches\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"wrenches\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: wrenches\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT inspections.checked_on FROM inspections INNER JOIN wrenches ON inspections.id = wrenches.inspection_id WHERE wrenches.kind = 'wrench'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "exact-plural",
+      "question": "Give the inspection dates for the kind plates.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-07"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\" WHERE \"inspections\".\"kind\" = ?",
+        "params": [
+          [
+            "Text",
+            "plates"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-07"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"kind\",\"kind plates\"]}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: kind_plates\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.checked_on FROM inspections AS T1 INNER JOIN kind_plates AS T2 ON T1.id = T2.inspection_id\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-kind",
+      "question": "Show the inspection dates for the kind \"brushes\".",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-06"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"inspections\",\"column\":\"kind\"},\"Equal\",[\"Text\",\"brushes\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\" WHERE \"inspections\".\"kind\" = ?",
+        "params": [
+          [
+            "Text",
+            "brushes"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-06"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT checked_on FROM inspections WHERE kind = 'brushes'\"}",
+        "sql": "SELECT checked_on FROM inspections WHERE kind = 'brushes'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-06"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-name",
+      "question": "List the inspection dates for the label \"Moss Bells\".",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"inspections\",\"column\":\"label\"},\"Equal\",[\"Text\",\"Moss Bells\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\" WHERE \"inspections\".\"label\" = ?",
+        "params": [
+          [
+            "Text",
+            "Moss Bells"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: labels\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.checked_on FROM inspections AS T1 INNER JOIN labels AS T2 ON T1.label = T2.label WHERE T2.label = 'Moss Bells'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-absent",
+      "question": "List the inspection dates for the kind \"gaskets\".",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"inspections\",\"column\":\"kind\"},\"Equal\",[\"Text\",\"gaskets\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\" WHERE \"inspections\".\"kind\" = ?",
+        "params": [
+          [
+            "Text",
+            "gaskets"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT checked_on FROM inspections WHERE kind = 'gaskets'\"}",
+        "sql": "SELECT checked_on FROM inspections WHERE kind = 'gaskets'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-kind",
+      "question": "Give the inspection dates for funnels.",
+      "expected_rows": [],
+      "structured": {
+        "status": "FalseAbstention",
+        "detail": "UnknownTable('funnels')",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"no_answer\":\"UnknownTable('funnels')\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"funnels\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: funnels\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"inspections\\\",\\\"checked_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.checked_on FROM inspections AS T1 INNER JOIN funnels AS T2 ON T1.id = T2.inspection_id\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "unfiltered",
+      "question": "List every inspection date.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-01"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-02"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-04"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-05"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-06"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-07"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-08-08"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"inspections\",\"select\":[[\"Column\",{\"table\":\"inspections\",\"column\":\"checked_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"inspections\".\"checked_on\" FROM \"inspections\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-02"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-04"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-06"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-07"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-08"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT checked_on FROM inspections\"}",
+        "sql": "SELECT DISTINCT checked_on FROM inspections",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-08-01"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-02"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-04"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-06"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-07"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-08-08"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

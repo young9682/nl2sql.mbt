@@ -55,9 +55,21 @@ async fn main {
       (flag, "eval/borrower-dev/scores.db", "eval/borrower-dev/questions.json")
     [_, "--fixture" | "--live" as flag, "--range-dev"] =>
       (flag, "eval/range-dev/bookings.db", "eval/range-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--refusal-dev"] =>
+      (
+        flag, "eval/refusal-dev/screenings.db", "eval/refusal-dev/questions.json",
+      )
+    [_, "--fixture" | "--live" as flag, "--party-dev"] =>
+      (flag, "eval/party-dev/rentals.db", "eval/party-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--plural-dev"] =>
+      (flag, "eval/plural-dev/inspections.db", "eval/plural-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--descriptor-dev"] =>
+      (
+        flag, "eval/descriptor-dev/returns.db", "eval/descriptor-dev/questions.json",
+      )
     _ => {
       println(
-        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev]",
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev | --refusal-dev | --party-dev | --plural-dev | --descriptor-dev]",
       )
       @env.exit(2)
     }
@@ -205,6 +217,8 @@ async fn compare_case(
             question.question,
             first,
             model.review_filter,
+            db_path=Some(db_path),
+            timeout_ms=TIMEOUT_MS,
           )
           filter_review_reply = review
           effective

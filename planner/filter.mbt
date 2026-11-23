@@ -128,11 +128,14 @@ fn is_text_column(column : @lib.Column) -> Bool {
 ///|
 /// Returns the plan to execute and the raw review if a model call was made.
 /// Existing predicates, grouped queries, joins and refusals skip this review.
+/// With a database path, a proposed unquoted category can be checked locally.
 pub async fn review_text_filter(
   catalog : @lib.Catalog,
   question : String,
   reply : String,
   review : async (String) -> String,
+  db_path~ : String? = None,
+  timeout_ms~ : Int32 = 5000,
 ) -> (String, String?) {
   let original = (reply, None)
   if !allows_text_equality(question) {
@@ -192,6 +195,18 @@ pub async fn review_text_filter(
     !schema.columns.any(field => field.name.to_lower() == value.to_lower()) &&
     mentions_value(question, value) else {
     return unchanged
+  }
+  let value = match db_path {
+    Some(path) =>
+      stored_category_value(
+        path,
+        catalog,
+        { table, column, },
+        question,
+        value,
+        timeout_ms,
+      )
+    None => value
   }
   fields["filters"] = [
     [
@@ -269,9 +284,7 @@ fn mentions_value(question : String, value : String) -> Bool {
       (ch.is_ascii_punctuation() && ch != '_' && ch != '-')
     )
   }
-  let plural_suffixes = if ["s", "sh", "ch", "x", "z"].any(ending => {
-      word.has_suffix(ending)
-    }) {
+  let plural_suffixes = if can_take_es(word.clamped_view()) {
     ["s", "es"]
   } else {
     ["s"]

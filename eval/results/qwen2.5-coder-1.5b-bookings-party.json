@@ -1,0 +1,624 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/range-dev/bookings.db",
+  "questions": "eval/range-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 8,
+      "total": 8,
+      "rate": 1
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "invalid_output_rate": {
+      "count": 2,
+      "total": 8,
+      "rate": 0.25
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "from-onward",
+      "question": "List the booking dates of reservations for Iris Studio from March 10, 2025 onward.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"customer\"}, \"Equal\", [\"Text\", \"Iris Studio\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"GreaterEqual\", [\"Text\", \"2025-03-10\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ? AND \"bookings\".\"booked_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ],
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on >= '2025-03-10'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on >= '2025-03-10'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "strict-after",
+      "question": "Give the booking dates for Iris Studio after March 10, 2025.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [[\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"customer\"}, \"Equal\", [\"Text\", \"Iris Studio\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"Greater\", [\"Text\", \"2025-03-10\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ? AND \"bookings\".\"booked_on\" > ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ],
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on > '2025-03-10'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on > '2025-03-10'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "on-or-after",
+      "question": "Which booking dates for Moss Hall fall on or after March 10, 2025?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"customer\"}, \"Equal\", [\"Text\", \"Moss Hall\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"GreaterEqual\", [\"Text\", \"2025-03-10\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ? AND \"bookings\".\"booked_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "Moss Hall"
+          ],
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE provider = 'Moss Hall' AND booked_on >= '2025-03-10'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE provider = 'Moss Hall' AND booked_on >= '2025-03-10'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "named-provider",
+      "question": "List booking dates for reservations supplied by Iris Studio from March 10, 2025 onward.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-12"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"provider\"}, \"Equal\", [\"Text\", \"Iris Studio\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"GreaterEqual\", [\"Text\", \"2025-03-10\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"provider\" = ? AND \"bookings\".\"booked_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ],
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: providers\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.booked_on FROM bookings AS T1 INNER JOIN providers AS T2 ON T1.provider = T2.id WHERE T2.name = 'Iris Studio' AND T1.booked_on >= '2025-03-10' ORDER BY T1.booked_on\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "empty-range",
+      "question": "List booking dates for Iris Studio from March 20, 2025 onward.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"customer\"}, \"Equal\", [\"Text\", \"Iris Studio\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"GreaterEqual\", [\"Text\", \"2025-03-20\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ? AND \"bookings\".\"booked_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ],
+          [
+            "Text",
+            "2025-03-20"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: customers\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.booked_on FROM bookings AS T1 INNER JOIN customers AS T2 ON T1.customer = T2.id WHERE T2.name = 'Iris Studio' AND T1.booked_on >= '2025-03-01' ORDER BY T1.booked_on\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "date-only",
+      "question": "List every booking date from March 10, 2025 onward.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-14"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-12"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"bookings\",\"select\":[[\"Column\",{\"table\":\"bookings\",\"column\":\"booked_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"bookings\",\"column\":\"booked_on\"},\"GreaterEqual\",[\"Text\",\"2025-03-10\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"booked_on\" >= ?",
+        "params": [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE strftime('%Y-%m', booked_on) >= '2025-03' AND strftime('%Y-%m', booked_on) <= '2025-12'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE strftime('%Y-%m', booked_on) >= '2025-03' AND strftime('%Y-%m', booked_on) <= '2025-12'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "party-only",
+      "question": "List the booking dates for Iris Studio.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-09"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-03-14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"bookings\\\",\\\"booked_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"bookings\",\"select\":[[\"Column\",{\"table\":\"bookings\",\"column\":\"booked_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"bookings\",\"column\":\"customer\"},\"Equal\",[\"Text\",\"Iris Studio\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-14"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"bookings\\\",\\\"booked_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE provider = 'Iris Studio'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE provider = 'Iris Studio'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-10"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-03-12"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "before",
+      "question": "List booking dates for Iris Studio before March 10, 2025.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-03-09"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"bookings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"bookings\", \"column\": \"booked_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"customer\"}, \"Equal\", [\"Text\", \"Iris Studio\"]],\n      [\"Compare\", {\"table\": \"bookings\", \"column\": \"booked_on\"}, \"Less\", [\"Text\", \"2025-03-10\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": []\n  }\n}",
+        "sql": "SELECT \"bookings\".\"booked_on\" FROM \"bookings\" WHERE \"bookings\".\"customer\" = ? AND \"bookings\".\"booked_on\" < ?",
+        "params": [
+          [
+            "Text",
+            "Iris Studio"
+          ],
+          [
+            "Text",
+            "2025-03-10"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-03-09"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on < '2025-03-10'\"}",
+        "sql": "SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on < '2025-03-10'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    }
+  ]
+}

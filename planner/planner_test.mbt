@@ -88,14 +88,22 @@ async test "schema review preserves an initial refusal and lets an empty query r
   defer server.close()
   @async.with_task_group() <| group => {
     let initial_refusal = "{\"no_answer\":\"The schema has no logins.\"}"
+    let contradictory =
+      #|{"no_answer":"The 'amount' column is missing in the 'ORDERS' table."}
+    let genuine_missing =
+      #|{"no_answer":"The 'logins' column is missing in the 'users' table."}
+    let row_claim =
+      #|{"no_answer":"No order has the requested amount."}
     let review_refusal = "{\"missing_column\":[\"orders\",\"contract_rate\"]}"
     group.spawn_bg(() => {
       for
         (review, reply) in [
           (false, initial_refusal),
+          (false, genuine_missing),
+          (false, row_claim),
           (false, "{\"supported\":true}"),
           (true, review_refusal),
-          (false, "{\"supported\":true}"),
+          (false, contradictory),
           (true, "{\"missing_column\":[\"orders\",\"amount\"]}"),
         ] {
         let (connection, _) = server.accept()
@@ -124,6 +132,11 @@ async test "schema review preserves an initial refusal and lets an empty query r
     assert_eq(
       assess(catalog, "When did each user first log in?"),
       initial_refusal,
+    )
+    assert_eq(assess(catalog, "When did each user log in?"), genuine_missing)
+    assert_eq(
+      assess(catalog, "Which order has the requested amount?"),
+      row_claim,
     )
     assert_eq(
       assess(catalog, "What were the contract rates?"),
@@ -684,4 +697,220 @@ test "date range hints distinguish inclusive and exclusive bounds and skip compo
     catalog, "List booking dates of exhibits for Silver Oak from 2025-03-10 onward.",
   )
   assert_false(item.contains("Additional required Compare predicate"))
+}
+
+///|
+test "implicit receiving-party hints keep the original literal and role" {
+  let catalog = @sqlite.read_catalog("eval/party-dev/rentals.db")
+  let predicate =
+    #|["Compare",{"table":"rentals","column":"renter"},"Equal",["Text","Amber Guild"]]
+  for
+    question in [
+      "List the rental dates for Amber Guild.", "List the items of rentals for Amber Guild.",
+      "List the rental dates for \"Amber Guild\".",
+    ] {
+    assert_true(@planner.plan_prompt_for(catalog, question).contains(predicate))
+  }
+  for
+    question in [
+      "Give the rental dates for tripods.", "Give the rental dates for Amber Guild or Cedar Hall.",
+      "Give rental dates for equipment named Amber Guild.", "Give rental dates for Amber Guild, excluding tripods.",
+      "Give rental dates with no recorded renter.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let supplier = @planner.plan_prompt_for(
+    catalog, "List rental dates supplied by Amber Guild.",
+  )
+  assert_true(supplier.contains("matching text role in this schema is owner."))
+  let ambiguous : @lib.Catalog = {
+    ..catalog,
+    schema: @lib.Schema::new(
+      catalog.schema.tables +
+      [@lib.Table::new("orders", [@lib.Column::new("customer", "TEXT")])],
+    ),
+  }
+  assert_eq(
+    @planner.plan_prompt_for(ambiguous, "List rental dates for Amber Guild."),
+    @planner.plan_prompt,
+  )
+}
+
+///|
+async test "category review tries a unique stored singular and respects exact values" {
+  let db = "eval/plural-dev/inspections.db"
+  let catalog = @sqlite.read_catalog(db)
+  let first =
+    #|{"plan":{"from_table":"inspections","select":[["Column",{"table":"inspections","column":"checked_on"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  for
+    (question, column, proposed, expected_parameter, expected_dates) in [
+      (
+        "Give inspection dates for gaskets.",
+        "kind",
+        "gaskets",
+        "gasket",
+        ["2025-08-01", "2025-08-01", "2025-08-02"],
+      ),
+      (
+        "Give inspection dates for wrenches.",
+        "kind",
+        "wrenches",
+        "wrench",
+        ["2025-08-04"],
+      ),
+      (
+        "Give inspection dates for plates.",
+        "kind",
+        "plates",
+        "plates",
+        ["2025-08-07"],
+      ),
+      (
+        "Give inspection dates for brushes.",
+        "kind",
+        "brushes",
+        "brushes",
+        ["2025-08-06"],
+      ),
+      (
+        "Give inspection dates for \"gaskets\".",
+        "kind",
+        "gaskets",
+        "gaskets",
+        [],
+      ),
+      (
+        "Give inspection dates for the label \"Moss Bells\".",
+        "label",
+        "Moss Bells",
+        "Moss Bells",
+        ["2025-08-01", "2025-08-01"],
+      ),
+      ("Give inspection dates for funnels.", "kind", "funnels", "funnels", []),
+    ] {
+    let proposal =
+      $|{"equals":["\{column}","\{proposed}"]}
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      _ => proposal,
+      db_path=Some(db),
+    )
+    assert_eq(raw, Some(proposal))
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected an inspection query")
+    }
+    assert_eq(evidence.params, [Text(expected_parameter)])
+    assert_eq(evidence.result.rows.length(), expected_dates.length())
+    for date in expected_dates {
+      let matching = evidence.result.rows.filter(row => row == [Text(date)])
+      assert_eq(
+        matching.length(),
+        expected_dates.filter(value => value == date).length(),
+      )
+    }
+  }
+
+  let paths = [None, Some("eval/plural-dev/nonexistent.db")]
+  let proposal = "{\"equals\":[\"kind\",\"gaskets\"]}"
+  let propose : async (String) -> String = _ => proposal
+  for path in paths {
+    let (effective, _) = @planner.review_text_filter(
+      catalog,
+      "Give inspection dates for gaskets.",
+      first,
+      propose,
+      db_path=path,
+    )
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected a query with the original literal")
+    }
+    assert_eq(evidence.params, [Text("gaskets")])
+    assert_true(evidence.result.rows.is_empty())
+  }
+}
+
+///|
+async test "category review removes only a redundant prefix with a stored alternative" {
+  let db = "eval/descriptor-dev/returns.db"
+  let catalog = @sqlite.read_catalog(db)
+  let first =
+    #|{"plan":{"from_table":"returns_log","select":[["Column",{"table":"returns_log","column":"received_on"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  for
+    (question, column, proposed, bound, dates) in [
+      (
+        "Give return dates for the category cables.",
+        "category",
+        "category cables",
+        "cables",
+        ["2025-10-01", "2025-10-01"],
+      ),
+      (
+        "Give return dates for the Category cables.",
+        "category",
+        "Category cables",
+        "cables",
+        ["2025-10-01", "2025-10-01"],
+      ),
+      (
+        "Give return dates for the category adapters.",
+        "category",
+        "category adapters",
+        "category adapters",
+        ["2025-10-03"],
+      ),
+      (
+        "Give return dates for the category metal clips.",
+        "category",
+        "category metal clips",
+        "metal clips",
+        ["2025-10-06"],
+      ),
+      (
+        "Give return dates for the category missing clips.",
+        "category",
+        "category missing clips",
+        "category missing clips",
+        [],
+      ),
+      (
+        "Give return dates for the kind cables.",
+        "category",
+        "kind cables",
+        "kind cables",
+        [],
+      ),
+      (
+        "Give return dates for \"category cables\".",
+        "category",
+        "category cables",
+        "category cables",
+        [],
+      ),
+      (
+        "Give return dates for the label \"category cables\".",
+        "label",
+        "category cables",
+        "category cables",
+        ["2025-10-05"],
+      ),
+    ] {
+    let proposal =
+      $|{"equals":["\{column}","\{proposed}"]}
+    let propose : async (String) -> String = _ => proposal
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      propose,
+      db_path=Some(db),
+    )
+    assert_eq(raw, Some(proposal))
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected a return date query")
+    }
+    assert_eq(evidence.params, [Text(bound)])
+    assert_eq(evidence.result.rows, dates.map(date => [Text(date)]))
+  }
 }

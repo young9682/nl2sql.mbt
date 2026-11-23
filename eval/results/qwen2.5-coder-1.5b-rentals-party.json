@@ -1,0 +1,603 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/party-dev/rentals.db",
+  "questions": "eval/party-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 7,
+      "total": 8,
+      "rate": 0.875
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 4,
+      "total": 8,
+      "rate": 0.5
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "receiving-party",
+      "question": "List the rental dates for Amber Guild.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-09"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"rentals\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Amber Guild\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Amber Guild"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-09"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE owner = 'Amber Guild'\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE owner = 'Amber Guild'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "transaction-noun",
+      "question": "Show the items of rentals for Cobalt Garage.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "tripod"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"item\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"item\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"rentals\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Cobalt Garage\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"item\" FROM \"rentals\" WHERE \"rentals\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cobalt Garage"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "tripod"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"item\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT item FROM rentals WHERE owner = 'Cobalt Garage'\"}",
+        "sql": "SELECT item FROM rentals WHERE owner = 'Cobalt Garage'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "tripod"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "projector"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "screen"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "supplying-party",
+      "question": "List the rental dates supplied by Amber Guild.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-05"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-07"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"rentals\",\"column\":\"owner\"},\"Equal\",[\"Text\",\"Amber Guild\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"owner\" = ?",
+        "params": [
+          [
+            "Text",
+            "Amber Guild"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE owner = 'Amber Guild'\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE owner = 'Amber Guild'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "unknown-name",
+      "question": "Give the rental dates for Cedar Hall.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"rentals\",\"column\":\"owner\"},\"Equal\",[\"Text\",\"Cedar Hall\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"owner\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cedar Hall"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE owner = 'Cedar Hall'\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE owner = 'Cedar Hall'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "quoted-name",
+      "question": "List the rental dates for \"Amber Guild\".",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-09"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"rentals\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Amber Guild\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Amber Guild"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-09"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE item = 'Amber Guild'\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE item = 'Amber Guild'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "item-only",
+      "question": "Give the rental dates for tripods.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-09"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-05"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"item\" = ?",
+        "params": [
+          [
+            "Text",
+            "tripods"
+          ]
+        ],
+        "rows": [],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":[\"item\",\"tripods\"]}"
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"rented_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE item = 'tripods'\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE item = 'tripods'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-renter",
+      "question": "List the rental dates with no recorded renter.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-07"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"renter\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"rentals\",\"column\":\"renter\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\" WHERE \"rentals\".\"renter\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"rentals\\\",\\\"renter\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals WHERE renter IS NULL\"}",
+        "sql": "SELECT rented_on FROM rentals WHERE renter IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-rentals",
+      "question": "List all rental dates.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-03"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-09"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-05"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-07"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "2025-06-05"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"rentals\",\"select\":[[\"Column\",{\"table\":\"rentals\",\"column\":\"rented_on\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"rentals\".\"rented_on\" FROM \"rentals\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT rented_on FROM rentals\"}",
+        "sql": "SELECT rented_on FROM rentals",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-03"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-09"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-07"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "2025-06-05"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

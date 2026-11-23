@@ -1,0 +1,312 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/refusal-dev/screenings.db",
+  "questions": "eval/refusal-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 4,
+      "total": 4,
+      "rate": 1
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 4,
+      "total": 4,
+      "rate": 1
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 4,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 0,
+      "total": 4,
+      "rate": 0
+    },
+    "invalid_output_rate": {
+      "count": 4,
+      "total": 8,
+      "rate": 0.5
+    },
+    "correct_abstention_rate": {
+      "count": 4,
+      "total": 4,
+      "rate": 1
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 4,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "known-venue",
+      "question": "Show the screening dates at Larch Theater after September 4, 2025.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "2025-09-06"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\n  \"plan\": {\n    \"from_table\": \"screenings\",\n    \"select\": [\n      [\"Column\", {\"table\": \"screenings\", \"column\": \"screened_on\"}]\n    ],\n    \"joins\": [],\n    \"filters\": [\n      [\"Compare\", {\"table\": \"screenings\", \"column\": \"venue\"}, \"Equal\", [\"Text\", \"Larch Theater\"]],\n      [\"Compare\", {\"table\": \"screenings\", \"column\": \"screened_on\"}, \"Greater\", [\"Text\", \"2025-09-04\"]]\n    ],\n    \"group_by\": [],\n    \"order_by\": [],\n    \"limit\": null\n  }\n}",
+        "sql": "SELECT \"screenings\".\"screened_on\" FROM \"screenings\" WHERE \"screenings\".\"venue\" = ? AND \"screenings\".\"screened_on\" > ?",
+        "params": [
+          [
+            "Text",
+            "Larch Theater"
+          ],
+          [
+            "Text",
+            "2025-09-04"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "2025-09-06"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: screening_date\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT screening_date FROM screenings WHERE venue = 'Larch Theater' AND screened_on > '2025-09-04'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "empty-venue",
+      "question": "Give screening dates at a venue named Cedar Hall.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"screened_on\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"screenings\",\"select\":[[\"Column\",{\"table\":\"screenings\",\"column\":\"screened_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"screenings\",\"column\":\"venue\"},\"Equal\",[\"Text\",\"Cedar Hall\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"screenings\".\"screened_on\" FROM \"screenings\" WHERE \"screenings\".\"venue\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cedar Hall"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: venues\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"screened_on\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.screened_on FROM screenings AS T1 INNER JOIN venues AS T2 ON T1.venue = T2.name WHERE T2.name = 'Cedar Hall'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "empty-range",
+      "question": "List screening dates at Larch Theater after September 30, 2025.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"screenings\",\"select\":[[\"Column\",{\"table\":\"screenings\",\"column\":\"screened_on\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"screenings\",\"column\":\"screened_on\"},\"Greater\",[\"Text\",\"2025-09-30\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"screenings\".\"screened_on\" FROM \"screenings\" WHERE \"screenings\".\"screened_on\" > ?",
+        "params": [
+          [
+            "Text",
+            "2025-09-30"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: screening_date\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":null}\"}",
+        "model_reply": "{\"sql\":\"SELECT screening_date FROM screenings WHERE venue = 'Larch Theater' AND screened_on > '2025-09-30'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "known-title",
+      "question": "What is the title that screened at Reed Cinema?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Stars"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"screenings\",\"select\":[[\"Column\",{\"table\":\"screenings\",\"column\":\"title\"}]],\"joins\":[],\"filters\":[[\"Compare\",{\"table\":\"screenings\",\"column\":\"venue\"},\"Equal\",[\"Text\",\"Reed Cinema\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"screenings\".\"title\" FROM \"screenings\" WHERE \"screenings\".\"venue\" = ?",
+        "params": [
+          [
+            "Text",
+            "Reed Cinema"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Stars"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "rejected_plan_reply": "{\"plan\":{\"from_table\":\"screenings\",\"select\":[\"Column\",{\"table\":\"screenings\",\"column\":\"title\"}],\"joins\":[],\"filters\":[[\"IsNull\",{\"table\":\"screenings\",\"column\":\"venue\"}]],\"group_by\":[],\"order_by\":[]}}"
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such table: venues\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM screenings AS T1 INNER JOIN venues AS T2 ON T1.venue = T2.id WHERE T2.name = 'Reed Cinema'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-admissions",
+      "question": "How many tickets were actually sold at Larch Theater?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for screenings.tickets_sold.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"tickets_sold\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The schema has no column for screenings.tickets_sold.",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"screenings\\\",\\\"tickets_sold\\\"]}\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-rating",
+      "question": "What age rating does the title Dunes have?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The age rating is missing from the screenings table.",
+        "answerability_reply": "{\"no_answer\":\"The age rating is missing from the screenings table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The age rating is missing from the screenings table.",
+        "answerability_reply": "{\"no_answer\":\"The age rating is missing from the screenings table.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-cancellation",
+      "question": "When was the Rain screening cancelled?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The screening information is missing.",
+        "answerability_reply": "{\"no_answer\":\"The screening information is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The screening information is missing.",
+        "answerability_reply": "{\"no_answer\":\"The screening information is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "missing-price",
+      "question": "What was the ticket price for screenings at Larch Theater on September 6, 2025?",
+      "expected_rows": null,
+      "structured": {
+        "status": "CorrectAbstention",
+        "detail": "The ticket price is missing.",
+        "answerability_reply": "{\"no_answer\":\"The ticket price is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectAbstention",
+        "detail": "The ticket price is missing.",
+        "answerability_reply": "{\"no_answer\":\"The ticket price is missing.\"}",
+        "model_reply": null,
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    }
+  ]
+}
