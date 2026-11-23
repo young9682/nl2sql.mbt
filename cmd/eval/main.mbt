@@ -61,9 +61,11 @@ async fn main {
       )
     [_, "--fixture" | "--live" as flag, "--party-dev"] =>
       (flag, "eval/party-dev/rentals.db", "eval/party-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--plural-dev"] =>
+      (flag, "eval/plural-dev/inspections.db", "eval/plural-dev/questions.json")
     _ => {
       println(
-        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev | --refusal-dev | --party-dev]",
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev | --refusal-dev | --party-dev | --plural-dev]",
       )
       @env.exit(2)
     }

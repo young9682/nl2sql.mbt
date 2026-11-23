@@ -1,0 +1,66 @@
+[
+  {
+    "id": "ordinary-plural",
+    "question": "Give the inspection dates for gaskets.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-01"]], [["Text", "2025-08-01"]], [["Text", "2025-08-02"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "gasket"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'gasket'"}
+  },
+  {
+    "id": "sibilant-plural",
+    "question": "Show the inspection dates for wrenches.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-04"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "wrench"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'wrench'"}
+  },
+  {
+    "id": "exact-plural",
+    "question": "Give the inspection dates for the kind plates.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-07"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "plates"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'plates'"}
+  },
+  {
+    "id": "quoted-kind",
+    "question": "Show the inspection dates for the kind \"brushes\".",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-06"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "brushes"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'brushes'"}
+  },
+  {
+    "id": "quoted-name",
+    "question": "List the inspection dates for the label \"Moss Bells\".",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-01"]], [["Text", "2025-08-01"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "label"}, "Equal", ["Text", "Moss Bells"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE label = 'Moss Bells'"}
+  },
+  {
+    "id": "quoted-absent",
+    "question": "List the inspection dates for the kind \"gaskets\".",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "gaskets"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'gaskets'"}
+  },
+  {
+    "id": "missing-kind",
+    "question": "Give the inspection dates for funnels.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [["Compare", {"table": "inspections", "column": "kind"}, "Equal", ["Text", "funnels"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections WHERE kind = 'funnels'"}
+  },
+  {
+    "id": "unfiltered",
+    "question": "List every inspection date.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-08-01"]], [["Text", "2025-08-01"]], [["Text", "2025-08-02"]], [["Text", "2025-08-04"]], [["Text", "2025-08-05"]], [["Text", "2025-08-06"]], [["Text", "2025-08-07"]], [["Text", "2025-08-08"]]],
+    "fixture_plan": {"plan": {"from_table": "inspections", "select": [["Column", {"table": "inspections", "column": "checked_on"}]], "joins": [], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT checked_on FROM inspections"}
+  }
+]
