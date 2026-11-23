@@ -477,3 +477,27 @@ moon run --quiet --target native cmd/eval -- --fixture --range-dev
 moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Reviewing catalog contradictions in refusals
+
+The booking question asking for dates for Iris Studio strictly after March 10, 2025 was refused by both paths before generation. The initial assessment claimed `bookings.provider` was absent even though the catalog lists it. The shared adapter now sends precise, quoted single-column claims contradicted by the named table to the existing schema review. The reviewer checks for a missing fact, and the final decision uses the live catalog. [Adapter](../planner/answerability.mbt) · [Regression test](../planner/planner_test.mbt) · [Baseline booking results](results/qwen2.5-coder-1.5b-bookings-range.json)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on eight booking questions | 6/8 → 7/8 | 0/8 → 0/8 |
+| False abstentions on eight booking questions | 1/8 → 0/8 | 1/8 → 0/8 |
+| Correct abstentions on four missing screening facts | 4/4 → 4/4 | 4/4 → 4/4 |
+| Correct rows on four answerable screening questions | 4/4 → 4/4 | 0/4 → 0/4 |
+
+The structured booking query bound the customer and the exclusive date, returning March 14. Direct SQL ran but used the provider column and returned March 12. On the screening development set, the structured planner returned both valid empty results and correctly refused all four missing facts. The direct path passed the four refusals and produced invalid SQL for the four answerable questions. The screening reports matched byte for byte before and after the change. [Frozen booking results](results/qwen2.5-coder-1.5b-bookings-refusal-review.json) · [Screening questions](refusal-dev/questions.json) · [Raw screening results](results/qwen2.5-coder-1.5b-screenings-refusal-review.json)
+
+We fixed the planner at `a12f327` before two fresh museum runs, using the same local model, SQLite snapshot and runtime settings as the preceding comparison. Both reports matched the archived museum report byte for byte. On the fixed 20-question benchmark, the structured and direct paths scored 12/12 and 6/12 on answerable questions, respectively. Both declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum report](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Run the following from the repository root after starting the pinned local server. Use `10fc5ca` for the baseline and `a12f327` for the frozen implementation. [Model and endpoint setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --refusal-dev
+moon run --quiet --target native cmd/eval -- --live --refusal-dev > screenings-live.json
+moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
