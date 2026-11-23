@@ -55,9 +55,13 @@ async fn main {
       (flag, "eval/borrower-dev/scores.db", "eval/borrower-dev/questions.json")
     [_, "--fixture" | "--live" as flag, "--range-dev"] =>
       (flag, "eval/range-dev/bookings.db", "eval/range-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--refusal-dev"] =>
+      (
+        flag, "eval/refusal-dev/screenings.db", "eval/refusal-dev/questions.json",
+      )
     _ => {
       println(
-        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev]",
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev | --refusal-dev]",
       )
       @env.exit(2)
     }
