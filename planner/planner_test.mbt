@@ -735,3 +735,98 @@ test "implicit receiving-party hints keep the original literal and role" {
     @planner.plan_prompt,
   )
 }
+
+///|
+async test "category review tries a unique stored singular and respects exact values" {
+  let db = "eval/plural-dev/inspections.db"
+  let catalog = @sqlite.read_catalog(db)
+  let first =
+    #|{"plan":{"from_table":"inspections","select":[["Column",{"table":"inspections","column":"checked_on"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  for
+    (question, column, proposed, expected_parameter, expected_dates) in [
+      (
+        "Give inspection dates for gaskets.",
+        "kind",
+        "gaskets",
+        "gasket",
+        ["2025-08-01", "2025-08-01", "2025-08-02"],
+      ),
+      (
+        "Give inspection dates for wrenches.",
+        "kind",
+        "wrenches",
+        "wrench",
+        ["2025-08-04"],
+      ),
+      (
+        "Give inspection dates for plates.",
+        "kind",
+        "plates",
+        "plates",
+        ["2025-08-07"],
+      ),
+      (
+        "Give inspection dates for brushes.",
+        "kind",
+        "brushes",
+        "brushes",
+        ["2025-08-06"],
+      ),
+      (
+        "Give inspection dates for \"gaskets\".",
+        "kind",
+        "gaskets",
+        "gaskets",
+        [],
+      ),
+      (
+        "Give inspection dates for the label \"Moss Bells\".",
+        "label",
+        "Moss Bells",
+        "Moss Bells",
+        ["2025-08-01", "2025-08-01"],
+      ),
+      ("Give inspection dates for funnels.", "kind", "funnels", "funnels", []),
+    ] {
+    let proposal =
+      $|{"equals":["\{column}","\{proposed}"]}
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      _ => proposal,
+      db_path=Some(db),
+    )
+    assert_eq(raw, Some(proposal))
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected an inspection query")
+    }
+    assert_eq(evidence.params, [Text(expected_parameter)])
+    assert_eq(evidence.result.rows.length(), expected_dates.length())
+    for date in expected_dates {
+      let matching = evidence.result.rows.filter(row => row == [Text(date)])
+      assert_eq(
+        matching.length(),
+        expected_dates.filter(value => value == date).length(),
+      )
+    }
+  }
+
+  let paths = [None, Some("eval/plural-dev/nonexistent.db")]
+  let proposal = "{\"equals\":[\"kind\",\"gaskets\"]}"
+  let propose : async (String) -> String = _ => proposal
+  for path in paths {
+    let (effective, _) = @planner.review_text_filter(
+      catalog,
+      "Give inspection dates for gaskets.",
+      first,
+      propose,
+      db_path=path,
+    )
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected a query with the original literal")
+    }
+    assert_eq(evidence.params, [Text("gaskets")])
+    assert_true(evidence.result.rows.is_empty())
+  }
+}

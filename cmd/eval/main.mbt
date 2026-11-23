@@ -213,6 +213,8 @@ async fn compare_case(
             question.question,
             first,
             model.review_filter,
+            db_path=Some(db_path),
+            timeout_ms=TIMEOUT_MS,
           )
           filter_review_reply = review
           effective

@@ -28,7 +28,7 @@ pub fn plan_prompt_for(@nl2sql.Catalog, String) -> String
 
 pub fn plan_retry_request(@nl2sql.Catalog, String, String) -> (String, String)?
 
-pub async fn review_text_filter(@nl2sql.Catalog, String, String, async (String) -> String) -> (String, String?)
+pub async fn review_text_filter(@nl2sql.Catalog, String, String, async (String) -> String, db_path? : String?, timeout_ms? : Int32) -> (String, String?)
 
 // Errors
 #derive(@debug.Debug)
