@@ -4,8 +4,8 @@ fn can_take_es(word : StringView) -> Bool {
 }
 
 ///|
-/// Keep quoted literals and exact stored categories. Try the singular only
-/// when exactly one grounded candidate exists in the same column.
+/// Keep quoted literals and exact stored categories. Use a grounded alternative
+/// only when exactly one candidate exists in the same column.
 fn stored_category_value(
   path : String,
   catalog : @lib.Catalog,
@@ -17,21 +17,13 @@ fn stored_category_value(
   let category_columns = [
     "category", "kind", "item", "type", "format", "shape", "species", "medium",
   ]
-  guard category_columns.contains(field.column.to_lower()) &&
-    !["\"", "'", "“", "”", "‘", "’"].any(mark => question.contains(mark)) &&
-    value.iter().all(ch => ch.is_ascii_lowercase()) &&
-    value.strip_suffix("s") is Some(stem) &&
-    stem.length() >= 3 &&
-    !["ss", "us", "is"].any(ending => value.has_suffix(ending)) else {
+  let column = field.column.to_lower()
+  guard category_columns.contains(column) &&
+    !["\"", "'", "“", "”", "‘", "’"].any(mark => question.contains(mark)) else {
     return value
   }
-
-  let alternatives = [stem.to_owned()]
-  if value.strip_suffix("es") is Some(base) &&
-    base.length() >= 3 &&
-    can_take_es(base) {
-    alternatives.push(base.to_owned())
-  }
+  let alternatives = category_alternatives(value, column)
+  guard !alternatives.is_empty() else { return value }
   let lookup : @plan.Plan = {
     from_table: field.table,
     select: [Column(field)],
@@ -61,7 +53,32 @@ fn stored_category_value(
     }
   }
   match present {
-    [singular] => singular
+    [stored] => stored
     _ => value
   }
+}
+
+///|
+fn category_alternatives(value : String, column : String) -> Array[String] {
+  // A model can include the column name when it copies an unquoted category.
+  // Look up the remaining phrase exactly.
+  if value.split_once(" ") is Some((prefix, suffix)) &&
+    prefix.to_owned().to_lower() == column &&
+    !suffix.is_empty() &&
+    suffix.trim() == suffix {
+    return [suffix.to_owned()]
+  }
+  guard value.iter().all(ch => ch.is_ascii_lowercase()) &&
+    value.strip_suffix("s") is Some(stem) &&
+    stem.length() >= 3 &&
+    !["ss", "us", "is"].any(ending => value.has_suffix(ending)) else {
+    return []
+  }
+  let alternatives = [stem.to_owned()]
+  if value.strip_suffix("es") is Some(base) &&
+    base.length() >= 3 &&
+    can_take_es(base) {
+    alternatives.push(base.to_owned())
+  }
+  alternatives
 }

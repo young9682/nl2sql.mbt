@@ -830,3 +830,87 @@ async test "category review tries a unique stored singular and respects exact va
     assert_true(evidence.result.rows.is_empty())
   }
 }
+
+///|
+async test "category review removes only a redundant prefix with a stored alternative" {
+  let db = "eval/descriptor-dev/returns.db"
+  let catalog = @sqlite.read_catalog(db)
+  let first =
+    #|{"plan":{"from_table":"returns_log","select":[["Column",{"table":"returns_log","column":"received_on"}]],"joins":[],"filters":[],"group_by":[],"order_by":[]}}
+  for
+    (question, column, proposed, bound, dates) in [
+      (
+        "Give return dates for the category cables.",
+        "category",
+        "category cables",
+        "cables",
+        ["2025-10-01", "2025-10-01"],
+      ),
+      (
+        "Give return dates for the Category cables.",
+        "category",
+        "Category cables",
+        "cables",
+        ["2025-10-01", "2025-10-01"],
+      ),
+      (
+        "Give return dates for the category adapters.",
+        "category",
+        "category adapters",
+        "category adapters",
+        ["2025-10-03"],
+      ),
+      (
+        "Give return dates for the category metal clips.",
+        "category",
+        "category metal clips",
+        "metal clips",
+        ["2025-10-06"],
+      ),
+      (
+        "Give return dates for the category missing clips.",
+        "category",
+        "category missing clips",
+        "category missing clips",
+        [],
+      ),
+      (
+        "Give return dates for the kind cables.",
+        "category",
+        "kind cables",
+        "kind cables",
+        [],
+      ),
+      (
+        "Give return dates for \"category cables\".",
+        "category",
+        "category cables",
+        "category cables",
+        [],
+      ),
+      (
+        "Give return dates for the label \"category cables\".",
+        "label",
+        "category cables",
+        "category cables",
+        ["2025-10-05"],
+      ),
+    ] {
+    let proposal =
+      $|{"equals":["\{column}","\{proposed}"]}
+    let propose : async (String) -> String = _ => proposal
+    let (effective, raw) = @planner.review_text_filter(
+      catalog,
+      question,
+      first,
+      propose,
+      db_path=Some(db),
+    )
+    assert_eq(raw, Some(proposal))
+    guard @planner.execute_reply(db, catalog, effective) is Queried(evidence) else {
+      fail("expected a return date query")
+    }
+    assert_eq(evidence.params, [Text(bound)])
+    assert_eq(evidence.result.rows, dates.map(date => [Text(date)]))
+  }
+}

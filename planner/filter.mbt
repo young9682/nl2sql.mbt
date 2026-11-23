@@ -128,7 +128,7 @@ fn is_text_column(column : @lib.Column) -> Bool {
 ///|
 /// Returns the plan to execute and the raw review if a model call was made.
 /// Existing predicates, grouped queries, joins and refusals skip this review.
-/// With a database path, an unquoted plural category can be checked locally.
+/// With a database path, a proposed unquoted category can be checked locally.
 pub async fn review_text_filter(
   catalog : @lib.Catalog,
   question : String,
