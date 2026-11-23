@@ -43,7 +43,12 @@ fn date_range_prompt(
       iso +
       "\"]."
     if original.length() == lower.length() &&
-      party_range_filter(catalog, original, prefix) is Some(eq) {
+      transaction_party_predicate(
+        catalog,
+        original,
+        prefix.strip_suffix(" fall").unwrap_or(prefix),
+      )
+      is Some(eq) {
       return Some(
         hint +
         "\nAdditional required Compare predicate: " +
@@ -108,57 +113,6 @@ fn iso_calendar_date(date : StringView) -> String? {
   }
   guard day >= "01" && day <= max_day else { return None }
   Some(year.to_owned() + "-" + month + "-" + day)
-}
-
-///|
-fn party_range_filter(
-  catalog : @lib.Catalog,
-  original : String,
-  prefix : StringView,
-) -> Json? {
-  let prefix = prefix.strip_suffix(" fall").unwrap_or(prefix)
-  for
-    (phrase, roles) in [
-      (" supplied by ", supplying_roles),
-      (" requested by ", receiving_roles),
-      (" for ", receiving_roles),
-    ] {
-    guard prefix.rev_split_once(phrase) is Some((before, rest)) else {
-      continue
-    }
-    if phrase == " for " &&
-      ![
-        " loans", " bookings", " reservations", " rentals", " checkouts", " orders",
-        " booking dates", " loan dates", " order dates", " reservation dates",
-      ].any(noun => before.has_suffix(noun)) {
-      return None
-    }
-    guard ![" not", "n't", "n’t"].any(ending => before.has_suffix(ending)) &&
-      allows_text_equality(rest.to_owned()) &&
-      unique_text_role(catalog, roles) is Some(column) else {
-      return None
-    }
-    let value = original.clamped_view(
-      start=rest.start_offset(),
-      end=rest.start_offset() + rest.length(),
-    )
-    // Only treat a short, capitalized name as an implicit party.
-    let words = value.split(" ").to_array()
-    guard words.length() <= 6 &&
-      words.all(word => word.get_char(0) is Some(ch) && ch.is_ascii_uppercase()) else {
-      return None
-    }
-    return Some([
-      "Compare",
-      {
-        "table": Json::string(column.table),
-        "column": Json::string(column.column),
-      },
-      "Equal",
-      ["Text", Json::string(value.to_owned())],
-    ])
-  }
-  None
 }
 
 ///|

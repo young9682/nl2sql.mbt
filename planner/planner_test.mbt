@@ -698,3 +698,40 @@ test "date range hints distinguish inclusive and exclusive bounds and skip compo
   )
   assert_false(item.contains("Additional required Compare predicate"))
 }
+
+///|
+test "implicit receiving-party hints keep the original literal and role" {
+  let catalog = @sqlite.read_catalog("eval/party-dev/rentals.db")
+  let predicate =
+    #|["Compare",{"table":"rentals","column":"renter"},"Equal",["Text","Amber Guild"]]
+  for
+    question in [
+      "List the rental dates for Amber Guild.", "List the items of rentals for Amber Guild.",
+      "List the rental dates for \"Amber Guild\".",
+    ] {
+    assert_true(@planner.plan_prompt_for(catalog, question).contains(predicate))
+  }
+  for
+    question in [
+      "Give the rental dates for tripods.", "Give the rental dates for Amber Guild or Cedar Hall.",
+      "Give rental dates for equipment named Amber Guild.", "Give rental dates for Amber Guild, excluding tripods.",
+      "Give rental dates with no recorded renter.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let supplier = @planner.plan_prompt_for(
+    catalog, "List rental dates supplied by Amber Guild.",
+  )
+  assert_true(supplier.contains("matching text role in this schema is owner."))
+  let ambiguous : @lib.Catalog = {
+    ..catalog,
+    schema: @lib.Schema::new(
+      catalog.schema.tables +
+      [@lib.Table::new("orders", [@lib.Column::new("customer", "TEXT")])],
+    ),
+  }
+  assert_eq(
+    @planner.plan_prompt_for(ambiguous, "List rental dates for Amber Guild."),
+    @planner.plan_prompt,
+  )
+}

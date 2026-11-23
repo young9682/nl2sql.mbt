@@ -30,6 +30,23 @@ fn with_party_examples(
     (receiving, supplying) {
     (Some(phrase), None) => (phrase, requester_examples, receiving_roles)
     (None, Some(phrase)) => (phrase, supplier_example, supplying_roles)
+    (None, None) => {
+      if input.length() == lower.length() &&
+        allows_text_equality(question) &&
+        transaction_party_predicate(
+          catalog,
+          input,
+          lower.trim_end(chars=" .?!"),
+        )
+        is Some(eq) {
+        return base +
+          "\n" +
+          party_instructions +
+          "\nIn this transaction, the name identifies the receiving party. Include this predicate in filters: " +
+          eq.stringify()
+      }
+      return base
+    }
     _ => return base
   }
   if !has_positive_party(lower, phrase) {
@@ -44,6 +61,74 @@ fn with_party_examples(
       ". Use that column for the party mentioned in the question."
     None => prompt
   }
+}
+
+///|
+fn transaction_party_predicate(
+  catalog : @lib.Catalog,
+  original : String,
+  clause : StringView,
+) -> Json? {
+  for
+    (phrase, roles) in [
+      (" supplied by ", supplying_roles),
+      (" requested by ", receiving_roles),
+      (" for ", receiving_roles),
+    ] {
+    guard clause.rev_split_once(phrase) is Some((before, rest)) else {
+      continue
+    }
+    if phrase == " for " &&
+      ![
+        " loans", " bookings", " reservations", " rentals", " checkouts", " orders",
+        " booking dates", " loan dates", " order dates", " reservation dates", " rental dates",
+        " checkout dates",
+      ].any(noun => before.has_suffix(noun)) {
+      return None
+    }
+    guard ![" not", "n't", "n’t"].any(ending => before.has_suffix(ending)) &&
+      allows_text_equality(rest.to_owned()) &&
+      unique_text_role(catalog, roles) is Some(column) else {
+      return None
+    }
+    let value = original.clamped_view(
+      start=rest.start_offset(),
+      end=rest.start_offset() + rest.length(),
+    )
+    let name = match
+      (
+        value.strip_prefix("\""),
+        value.strip_prefix("'"),
+        value.strip_prefix("“"),
+      ) {
+      (Some(inside), _, _) => inside.strip_suffix("\"").unwrap_or(value)
+      (_, Some(inside), _) => inside.strip_suffix("'").unwrap_or(value)
+      (_, _, Some(inside)) => inside.strip_suffix("”").unwrap_or(value)
+      _ => value
+    }
+    // Only treat a short, capitalized name as an implicit party.
+    let words = name.split(" ").to_array()
+    guard words.length() <= 6 &&
+      words.all(word => {
+        word.get_char(0) is Some(ch) &&
+        ch.is_ascii_uppercase() &&
+        word
+        .iter()
+        .all(char => char.is_ascii_alphabetic() || char == '-' || char == '\'')
+      }) else {
+      return None
+    }
+    return Some([
+      "Compare",
+      {
+        "table": Json::string(column.table),
+        "column": Json::string(column.column),
+      },
+      "Equal",
+      ["Text", Json::string(name.to_owned())],
+    ])
+  }
+  None
 }
 
 ///|
