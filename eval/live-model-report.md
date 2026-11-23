@@ -501,3 +501,27 @@ moon run --quiet --target native cmd/eval -- --live --refusal-dev > screenings-l
 moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
 moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
 ```
+
+## Receiving parties without a date condition
+
+In the booking baseline, the question asking for Iris Studio's booking dates produced an unfiltered plan. The equality review selected `provider` and returned dates for transactions Iris Studio supplied. The planner now shares the named-party recognition used for date comparisons with eligible party-only questions. It gives the model a bound equality suggestion for supported transaction wording with one catalogued receiving role and a short, capitalized name. It preserves the original spelling inside matched quotes. Cases that specify an item, ask about an unknown renter or leave the party ambiguous retain their existing prompts. [Planner](../planner/named_party.mbt) · [Regression test](../planner/planner_test.mbt)
+
+The separate rental database contains Amber Guild as both renter and owner on different rows, a repeated rental date, a null renter and equipment categories. Its eight questions were fixed at `e66ee55`. No rental rows are included in the model prompt. [Questions and fixture plans](party-dev/questions.json) · [SQLite data](party-dev/rentals.sql)
+
+| Live development metric | Structured, before → after | Direct SQL, before → after |
+| --- | ---: | ---: |
+| Correct rows on booking questions | 7/8 → 8/8 | 0/8 → 0/8 |
+| Correct rows on rental questions | 4/8 → 7/8 | 4/8 → 4/8 |
+
+The booking query now binds `Iris Studio` to `customer` and returns March 9, March 10 twice and March 14. Three rental questions recovered, including the quoted party name. The explicit owner query still uses `owner`, and the unknown-renter question uses `IS NULL`. The absent named renter scored as correct because the query returned the expected empty result, although its filter used the wrong role. The equipment question still binds the plural `tripods` against singular stored values. The earlier score-checkout reports matched byte for byte. [Previous booking report](results/qwen2.5-coder-1.5b-bookings-refusal-review.json) · [New booking report](results/qwen2.5-coder-1.5b-bookings-party.json) · [Rental baseline](results/qwen2.5-coder-1.5b-rentals-party-baseline.json) · [New rental report](results/qwen2.5-coder-1.5b-rentals-party.json)
+
+After freezing the implementation at `b9b3dce`, we ran both paths twice on the fixed museum set. The runs used the same local Qwen2.5-Coder-1.5B-Instruct Q4_K_M, pinned llama.cpp Vulkan runtime, SQLite snapshot and generation settings. Both outputs matched the archived report byte for byte. Structured accuracy was 12/12 and direct SQL accuracy was 6/12. Each path correctly declined 8/8 unanswerable questions and falsely declined 0/12 answerable questions. [Museum report](results/qwen2.5-coder-1.5b-museum-range.json)
+
+Use `e66ee55` for the baseline and `b9b3dce` for the frozen planner. Run these commands from the repository root after starting the pinned local server. [Server setup](../README.md#reproduce-the-comparison)
+
+```powershell
+moon run --quiet --target native cmd/eval -- --fixture --party-dev
+moon run --quiet --target native cmd/eval -- --live --party-dev > rentals-live.json
+moon run --quiet --target native cmd/eval -- --live --range-dev > bookings-live.json
+moon run --quiet --target native cmd/eval -- --live --holdout > museum-live.json
+```
