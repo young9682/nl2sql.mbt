@@ -51,9 +51,13 @@ async fn main {
       (flag, "eval/binding-dev/calendar.db", "eval/binding-dev/questions.json")
     [_, "--fixture" | "--live" as flag, "--category-dev"] =>
       (flag, "eval/category-dev/parcels.db", "eval/category-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--borrower-dev"] =>
+      (flag, "eval/borrower-dev/scores.db", "eval/borrower-dev/questions.json")
+    [_, "--fixture" | "--live" as flag, "--range-dev"] =>
+      (flag, "eval/range-dev/bookings.db", "eval/range-dev/questions.json")
     _ => {
       println(
-        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev]",
+        "Usage: moon run cmd/eval -- (--fixture | --live) [--holdout | --join-dev | --route-dev | --filter-dev | --binding-dev | --category-dev | --borrower-dev | --range-dev]",
       )
       @env.exit(2)
     }
@@ -183,7 +187,11 @@ async fn compare_case(
           is Some(reason) {
           return { ..grade_abstention(question, reason), answerability_reply, }
         }
-        let prompt = if structured { @planner.plan_prompt } else { sql_prompt }
+        let prompt = if structured {
+          @planner.plan_prompt_for(catalog, question.question)
+        } else {
+          sql_prompt
+        }
         let first = (model.generate)(prompt, input)
         if structured &&
           @planner.plan_retry_request(catalog, question.question, first)

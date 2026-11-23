@@ -1,0 +1,583 @@
+{
+  "mode": "live",
+  "model": "qwen2.5-coder-1.5b-instruct-q4_k_m",
+  "database": "eval/borrower-dev/scores.db",
+  "questions": "eval/borrower-dev/questions.json",
+  "temperature": 0,
+  "row_limit": 100,
+  "query_timeout_ms": 5000,
+  "structured": {
+    "result_accuracy": {
+      "count": 7,
+      "total": 8,
+      "rate": 0.875
+    },
+    "invalid_output_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "direct_sql": {
+    "result_accuracy": {
+      "count": 3,
+      "total": 8,
+      "rate": 0.375
+    },
+    "invalid_output_rate": {
+      "count": 3,
+      "total": 8,
+      "rate": 0.375
+    },
+    "correct_abstention_rate": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "false_abstention_rate": {
+      "count": 0,
+      "total": 8,
+      "rate": 0
+    },
+    "provider_failures": 0,
+    "execution_failures": 0
+  },
+  "cases": [
+    {
+      "id": "choir-titles",
+      "question": "List the score titles for checkouts requested by Cedar Choir.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Rain Canon"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Cedar Choir\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cedar Choir"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Rain Canon"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Cedar Choir'\"}",
+        "sql": "SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Cedar Choir'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "studio-titles",
+      "question": "Which score titles were borrowed by Wind Studio?",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Dawn Chorus"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Wind Studio\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Wind Studio"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T1.title\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T2.title = 'Wind Studio'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "absent-renter",
+      "question": "Show the score titles rented by Maple Quartet.",
+      "expected_rows": [],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Maple Quartet\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Maple Quartet"
+          ]
+        ],
+        "rows": [],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Maple Quartet'\"}",
+        "sql": "SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Maple Quartet'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "unknown-renter",
+      "question": "List score titles for checkouts with no recorded renter.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Open String"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"IsNull\",{\"table\":\"checkouts\",\"column\":\"renter\"}]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" IS NULL",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T1.title\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.renter IS NULL\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "ids-and-titles",
+      "question": "List score IDs and titles for checkouts requested by Cedar Choir.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "11"
+          ],
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "12"
+          ],
+          [
+            "Text",
+            "Rain Canon"
+          ]
+        ],
+        [
+          [
+            "Integer",
+            "15"
+          ],
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"id\"}],[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Cedar Choir\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"id\", \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cedar Choir"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "11"
+            ],
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "12"
+            ],
+            [
+              "Text",
+              "Rain Canon"
+            ]
+          ],
+          [
+            [
+              "Integer",
+              "15"
+            ],
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "InvalidOutput",
+        "detail": "SqliteError(1, \"no such column: T1.title\")",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T1.id, T1.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T2.title = 'Cedar Choir'\"}",
+        "sql": null,
+        "params": [],
+        "rows": null,
+        "truncated": false
+      }
+    },
+    {
+      "id": "only-ids",
+      "question": "Give only the score IDs borrowed by Wind Studio.",
+      "expected_rows": [
+        [
+          [
+            "Integer",
+            "14"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"score_id\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"id\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"renter\"},\"Equal\",[\"Text\",\"Wind Studio\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"id\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"renter\" = ?",
+        "params": [
+          [
+            "Text",
+            "Wind Studio"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Integer",
+              "14"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"score_id\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT DISTINCT T1.score_id FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T2.title = 'Wind Studio'\"}",
+        "sql": "SELECT DISTINCT T1.score_id FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T2.title = 'Wind Studio'",
+        "params": [],
+        "rows": [],
+        "truncated": false
+      }
+    },
+    {
+      "id": "named-lender",
+      "question": "Show the score titles for checkouts supplied by Cedar Choir.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Open String"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Dawn Chorus"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"checkouts\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[{\"table\":\"scores\",\"via\":\"checkouts\"}],\"filters\":[[\"Compare\",{\"table\":\"checkouts\",\"column\":\"lender\"},\"Equal\",[\"Text\",\"Cedar Choir\"]]],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"checkouts\" JOIN \"scores\" ON \"scores\".\"id\" = +\"checkouts\".\"score_id\" WHERE \"checkouts\".\"lender\" = ?",
+        "params": [
+          [
+            "Text",
+            "Cedar Choir"
+          ]
+        ],
+        "rows": [
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ]
+        ],
+        "truncated": false
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"checkouts\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Cedar Choir'\"}",
+        "sql": "SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id WHERE T1.lender = 'Cedar Choir'",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "id": "all-titles",
+      "question": "List the score titles for every checkout.",
+      "expected_rows": [
+        [
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Rain Canon"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Fir Waltz"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Open String"
+          ]
+        ],
+        [
+          [
+            "Text",
+            "Dawn Chorus"
+          ]
+        ]
+      ],
+      "structured": {
+        "status": "WrongRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"scores\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"plan\":{\"from_table\":\"scores\",\"select\":[[\"Column\",{\"table\":\"scores\",\"column\":\"title\"}]],\"joins\":[],\"filters\":[],\"group_by\":[],\"order_by\":[]}}",
+        "sql": "SELECT \"scores\".\"title\" FROM \"scores\"",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Rain Canon"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Silent Fugue"
+            ]
+          ]
+        ],
+        "truncated": false,
+        "filter_review_reply": "{\"equals\":null}"
+      },
+      "direct_sql": {
+        "status": "CorrectRows",
+        "detail": "",
+        "answerability_reply": "{\"schema_review\":\"{\\\"missing_column\\\":[\\\"scores\\\",\\\"title\\\"]}\"}",
+        "model_reply": "{\"sql\":\"SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id\"}",
+        "sql": "SELECT T2.title FROM checkouts AS T1 INNER JOIN scores AS T2 ON T1.score_id = T2.id",
+        "params": [],
+        "rows": [
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Rain Canon"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Fir Waltz"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Open String"
+            ]
+          ],
+          [
+            [
+              "Text",
+              "Dawn Chorus"
+            ]
+          ]
+        ],
+        "truncated": false
+      }
+    }
+  ]
+}

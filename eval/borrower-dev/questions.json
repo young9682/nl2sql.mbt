@@ -1,0 +1,66 @@
+[
+  {
+    "id": "choir-titles",
+    "question": "List the score titles for checkouts requested by Cedar Choir.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Fir Waltz"]], [["Text", "Rain Canon"]], [["Text", "Fir Waltz"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "renter"}, "Equal", ["Text", "Cedar Choir"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter = 'Cedar Choir'"}
+  },
+  {
+    "id": "studio-titles",
+    "question": "Which score titles were borrowed by Wind Studio?",
+    "ordered": false,
+    "expected_rows": [[["Text", "Dawn Chorus"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "renter"}, "Equal", ["Text", "Wind Studio"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter = 'Wind Studio'"}
+  },
+  {
+    "id": "absent-renter",
+    "question": "Show the score titles rented by Maple Quartet.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "renter"}, "Equal", ["Text", "Maple Quartet"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter = 'Maple Quartet'"}
+  },
+  {
+    "id": "unknown-renter",
+    "question": "List score titles for checkouts with no recorded renter.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Open String"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["IsNull", {"table": "checkouts", "column": "renter"}]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter IS NULL"}
+  },
+  {
+    "id": "ids-and-titles",
+    "question": "List score IDs and titles for checkouts requested by Cedar Choir.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "11"], ["Text", "Fir Waltz"]], [["Integer", "12"], ["Text", "Rain Canon"]], [["Integer", "15"], ["Text", "Fir Waltz"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "id"}], ["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "renter"}, "Equal", ["Text", "Cedar Choir"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.id, scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter = 'Cedar Choir'"}
+  },
+  {
+    "id": "only-ids",
+    "question": "Give only the score IDs borrowed by Wind Studio.",
+    "ordered": false,
+    "expected_rows": [[["Integer", "14"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "id"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "renter"}, "Equal", ["Text", "Wind Studio"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.id FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.renter = 'Wind Studio'"}
+  },
+  {
+    "id": "named-lender",
+    "question": "Show the score titles for checkouts supplied by Cedar Choir.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Open String"]], [["Text", "Dawn Chorus"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [["Compare", {"table": "checkouts", "column": "lender"}, "Equal", ["Text", "Cedar Choir"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id WHERE checkouts.lender = 'Cedar Choir'"}
+  },
+  {
+    "id": "all-titles",
+    "question": "List the score titles for every checkout.",
+    "ordered": false,
+    "expected_rows": [[["Text", "Fir Waltz"]], [["Text", "Rain Canon"]], [["Text", "Fir Waltz"]], [["Text", "Open String"]], [["Text", "Dawn Chorus"]]],
+    "fixture_plan": {"plan": {"from_table": "checkouts", "select": [["Column", {"table": "scores", "column": "title"}]], "joins": [{"table": "scores", "via": "checkouts"}], "filters": [], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT scores.title FROM checkouts JOIN scores ON scores.id = checkouts.score_id"}
+  }
+]

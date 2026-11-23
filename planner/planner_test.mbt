@@ -546,3 +546,142 @@ async test "aggregate equality review keeps its own context" {
   assert_eq(effective, first)
   assert_eq(raw, Some(proposal))
 }
+
+///|
+test "party examples respect catalog roles, missing parties and unrelated questions" {
+  let catalog = @sqlite.read_catalog("eval/borrower-dev/scores.db")
+  let borrower = @planner.plan_prompt_for(
+    catalog, "Which titles were borrowed by Cedar Choir?",
+  )
+  let lender = @planner.plan_prompt_for(
+    catalog, "List the titles supplied by Cedar Choir.",
+  )
+  assert_true(borrower.contains("matching text role in this schema is renter."))
+  assert_true(lender.contains("matching text role in this schema is lender."))
+  for
+    question in [
+      "List score titles for checkouts with no recorded renter.", "Find titles borrowed by nobody.",
+      "Find titles not borrowed by Cedar Choir.", "Find titles rented by Cedar Choir or Wind Studio.",
+      "Find titles supplied by Cedar Choir and requested by Wind Studio.", "List every score title, ordered by title.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let mixed : @lib.Catalog = {
+    schema: @lib.Schema::new([
+      @lib.Table::new("bookings", [
+        @lib.Column::new("Renter", "TEXT"),
+        @lib.Column::new("customer", "INTEGER"),
+      ]),
+    ]),
+    foreign_keys: [],
+  }
+  let question = "Give titles requested by Cedar Choir."
+  assert_true(
+    @planner.plan_prompt_for(mixed, question).contains(
+      "in this schema is Renter.",
+    ),
+  )
+  let ambiguous : @lib.Catalog = {
+    ..mixed,
+    schema: @lib.Schema::new(
+      mixed.schema.tables +
+      [@lib.Table::new("payments", [@lib.Column::new("customer", "TEXT")])],
+    ),
+  }
+  assert_false(
+    @planner.plan_prompt_for(ambiguous, question).contains(
+      "matching text role in this schema",
+    ),
+  )
+}
+
+///|
+async test "named checkout carries its role through a retry and returns only titles" {
+  let db = "eval/borrower-dev/scores.db"
+  let question = "Give the score titles requested by Cedar Choir."
+  let valid =
+    #|{"plan":{"from_table":"checkouts","select":[["Column",{"table":"scores","column":"title"}]],"joins":[{"table":"scores","via":"checkouts"}],"filters":[["Compare",{"table":"checkouts","column":"renter"},"Equal",["Text","Cedar Choir"]]],"group_by":[],"order_by":[]}}
+  let mut calls = 0
+  let result = @planner.ask(
+    db,
+    question,
+    (system, input) => {
+      assert_true(
+        system.contains("matching text role in this schema is renter."),
+      )
+      assert_true(input.contains(question))
+      calls += 1
+      if calls == 1 {
+        "{}"
+      } else {
+        valid
+      }
+    },
+    retry_invalid=true,
+  )
+  guard result is Queried(evidence) else { fail("expected a score lookup") }
+  assert_eq(calls, 2)
+  assert_eq(evidence.params, [Text("Cedar Choir")])
+  assert_eq(evidence.result.columns, ["title"])
+  assert_eq(evidence.result.rows.length(), 3)
+  assert_eq(
+    evidence.result.rows.filter(row => row == [Text("Fir Waltz")]).length(),
+    2,
+  )
+  assert_true(evidence.result.rows.contains([Text("Rain Canon")]))
+}
+
+///|
+test "dated transaction prompts bind the named party and the inclusive date separately" {
+  let catalog = @sqlite.read_catalog("eval/range-dev/bookings.db")
+  let prompt = @planner.plan_prompt_for(
+    catalog, "List the booking dates of reservations for Iris Studio from March 10, 2025 onward.",
+  )
+  assert_true(prompt.contains("GreaterEqual [\"Text\",\"2025-03-10\"]"))
+  assert_true(
+    prompt.contains(
+      "[\"Compare\",{\"table\":\"bookings\",\"column\":\"customer\"},\"Equal\",[\"Text\",\"Iris Studio\"]]",
+    ),
+    msg=prompt,
+  )
+}
+
+///|
+test "date range hints distinguish inclusive and exclusive bounds and skip compound dates" {
+  let catalog = @sqlite.read_catalog("eval/range-dev/bookings.db")
+  for
+    (question, expected) in [
+      (
+        "List booking dates after 2024-02-29.", "Greater [\"Text\",\"2024-02-29\"]",
+      ),
+      (
+        "List booking dates before April 1, 2025.", "Less [\"Text\",\"2025-04-01\"]",
+      ),
+      (
+        "Give booking dates on or before 2025-03-08.", "LessEqual [\"Text\",\"2025-03-08\"]",
+      ),
+      (
+        "List booking dates on or after March 10 2025.", "GreaterEqual [\"Text\",\"2025-03-10\"]",
+      ),
+    ] {
+    let prompt = @planner.plan_prompt_for(catalog, question)
+    assert_true(prompt.contains(expected))
+    assert_false(prompt.contains("Additional required Compare predicate"))
+  }
+  for
+    question in [
+      "Show booking dates not after March 10, 2025.", "Show booking dates after March 3, 2025 and before March 10, 2025.",
+      "Show booking dates before 2025-02-29.", "Show booking dates after April 31, 2025.",
+      "Show booking dates from Birch Hall.", "Show delivery times after shipping costs.",
+    ] {
+    assert_eq(@planner.plan_prompt_for(catalog, question), @planner.plan_prompt)
+  }
+  let party = @planner.plan_prompt_for(
+    catalog, "List booking dates supplied by Iris Studio from 2025-03-10 onwards.",
+  )
+  assert_true(party.contains("\"column\":\"provider\""))
+  let item = @planner.plan_prompt_for(
+    catalog, "List booking dates of exhibits for Silver Oak from 2025-03-10 onward.",
+  )
+  assert_false(item.contains("Additional required Compare predicate"))
+}

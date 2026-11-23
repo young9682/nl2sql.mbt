@@ -1,0 +1,66 @@
+[
+  {
+    "id": "from-onward",
+    "question": "List the booking dates of reservations for Iris Studio from March 10, 2025 onward.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-10"]], [["Text", "2025-03-10"]], [["Text", "2025-03-14"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Iris Studio"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "GreaterEqual", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Iris Studio' AND booked_on >= '2025-03-10'"}
+  },
+  {
+    "id": "strict-after",
+    "question": "Give the booking dates for Iris Studio after March 10, 2025.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-14"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Iris Studio"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "Greater", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Iris Studio' AND booked_on > '2025-03-10'"}
+  },
+  {
+    "id": "on-or-after",
+    "question": "Which booking dates for Moss Hall fall on or after March 10, 2025?",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-10"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Moss Hall"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "GreaterEqual", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Moss Hall' AND booked_on >= '2025-03-10'"}
+  },
+  {
+    "id": "named-provider",
+    "question": "List booking dates for reservations supplied by Iris Studio from March 10, 2025 onward.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-10"]], [["Text", "2025-03-12"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "provider"}, "Equal", ["Text", "Iris Studio"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "GreaterEqual", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE provider = 'Iris Studio' AND booked_on >= '2025-03-10'"}
+  },
+  {
+    "id": "empty-range",
+    "question": "List booking dates for Iris Studio from March 20, 2025 onward.",
+    "ordered": false,
+    "expected_rows": [],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Iris Studio"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "GreaterEqual", ["Text", "2025-03-20"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Iris Studio' AND booked_on >= '2025-03-20'"}
+  },
+  {
+    "id": "date-only",
+    "question": "List every booking date from March 10, 2025 onward.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-10"]], [["Text", "2025-03-10"]], [["Text", "2025-03-14"]], [["Text", "2025-03-10"]], [["Text", "2025-03-12"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "booked_on"}, "GreaterEqual", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE booked_on >= '2025-03-10'"}
+  },
+  {
+    "id": "party-only",
+    "question": "List the booking dates for Iris Studio.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-09"]], [["Text", "2025-03-10"]], [["Text", "2025-03-10"]], [["Text", "2025-03-14"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Iris Studio"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Iris Studio'"}
+  },
+  {
+    "id": "before",
+    "question": "List booking dates for Iris Studio before March 10, 2025.",
+    "ordered": false,
+    "expected_rows": [[["Text", "2025-03-09"]]],
+    "fixture_plan": {"plan": {"from_table": "bookings", "select": [["Column", {"table": "bookings", "column": "booked_on"}]], "joins": [], "filters": [["Compare", {"table": "bookings", "column": "customer"}, "Equal", ["Text", "Iris Studio"]], ["Compare", {"table": "bookings", "column": "booked_on"}, "Less", ["Text", "2025-03-10"]]], "group_by": [], "order_by": []}},
+    "fixture_sql": {"sql": "SELECT booked_on FROM bookings WHERE customer = 'Iris Studio' AND booked_on < '2025-03-10'"}
+  }
+]
